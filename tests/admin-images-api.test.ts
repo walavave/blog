@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtemp, mkdir, rm, utimes, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -7,6 +7,15 @@ const PNG_1X1 = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0ioAAAAASUVORK5CYII=',
   'base64'
 );
+
+const createUploadRequest = (url: string, formData: FormData) =>
+  new Request(url, {
+    method: 'POST',
+    headers: {
+      origin: new URL(url).origin
+    },
+    body: formData
+  });
 
 describe('admin images api', () => {
   let tempRoot = '';
@@ -222,6 +231,71 @@ describe('admin images api', () => {
     const unsafePayload = JSON.parse(await unsafeResponse.text());
     expect(unsafePayload.ok).toBe(false);
     expect(Array.isArray(unsafePayload.errors)).toBe(true);
+  });
+
+  it('uploads essay body images next to the current source file', async () => {
+    const { POST } = await import('../src/pages/api/admin/images/upload');
+    const formData = new FormData();
+    formData.set('collection', 'essay');
+    formData.set('entryId', 'guide');
+    formData.set('image', new File([PNG_1X1], 'Hero Shot.PNG', { type: 'image/png' }));
+
+    const response = await POST({
+      request: createUploadRequest('http://127.0.0.1:4321/api/admin/images/upload', formData),
+      url: new URL('http://127.0.0.1:4321/api/admin/images/upload')
+    } as never);
+
+    expect(response.status).toBe(200);
+    const payload = JSON.parse(await response.text());
+    expect(payload.ok).toBe(true);
+    expect(payload.result).toEqual(
+      expect.objectContaining({
+        src: './guide-assets/hero-shot.png',
+        path: 'src/content/essay/guide-assets/hero-shot.png',
+        fileName: 'hero-shot.png',
+        width: 1,
+        height: 1,
+        mimeType: 'image/png'
+      })
+    );
+    await expect(readFile(path.join(tempRoot, 'src', 'content', 'essay', 'guide-assets', 'hero-shot.png'))).resolves.toEqual(PNG_1X1);
+  });
+
+  it('keeps uploads non-blocking by auto-renaming conflicts', async () => {
+    const { POST } = await import('../src/pages/api/admin/images/upload');
+    const formData = new FormData();
+    formData.set('collection', 'essay');
+    formData.set('entryId', 'guide');
+    formData.set('image', new File([PNG_1X1], 'hero.png', { type: 'image/png' }));
+
+    const response = await POST({
+      request: createUploadRequest('http://127.0.0.1:4321/api/admin/images/upload', formData),
+      url: new URL('http://127.0.0.1:4321/api/admin/images/upload')
+    } as never);
+
+    expect(response.status).toBe(200);
+    const payload = JSON.parse(await response.text());
+    expect(payload.ok).toBe(true);
+    expect(payload.result.src).toBe('./guide-assets/hero-2.png');
+    await expect(readFile(path.join(tempRoot, 'src', 'content', 'essay', 'guide-assets', 'hero-2.png'))).resolves.toEqual(PNG_1X1);
+  });
+
+  it('rejects non-image uploads without writing files', async () => {
+    const { POST } = await import('../src/pages/api/admin/images/upload');
+    const formData = new FormData();
+    formData.set('collection', 'essay');
+    formData.set('entryId', 'guide');
+    formData.set('image', new File(['hello'], 'note.txt', { type: 'text/plain' }));
+
+    const response = await POST({
+      request: createUploadRequest('http://127.0.0.1:4321/api/admin/images/upload', formData),
+      url: new URL('http://127.0.0.1:4321/api/admin/images/upload')
+    } as never);
+
+    expect(response.status).toBe(400);
+    const payload = JSON.parse(await response.text());
+    expect(payload.ok).toBe(false);
+    expect(payload.errors).toEqual(expect.arrayContaining(['请选择图片文件']));
   });
 
   it('derives recent scope from local file mtime and excludes hidden system assets', async () => {

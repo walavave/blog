@@ -12,30 +12,36 @@ vi.mock('../src/lib/content', () => ({
 
 vi.mock('../src/lib/bits', () => ({
   getBitAnchorId: (key: string) => `bit-${key}`,
+  getBitsPagePath: (page: number) => (page <= 1 ? '/bits/' : `/bits/page/${page}/`),
   getBitSlug: vi.fn(),
   getBitsDerivedText: vi.fn(),
   getBitsSearchIndex: vi.fn(),
   getSortedBits: vi.fn()
 }));
 
-const contentLib = await import('../src/lib/content');
-const bitsLib = await import('../src/lib/bits');
+vi.mock('../src/lib/admin-console/content-shared', () => ({
+  listAdminCollectionSourceFiles: vi.fn()
+}));
+
+const contentModule = await import('../src/lib/content');
+const bitsModule = await import('../src/lib/bits');
+const contentSharedModule = await import('../src/lib/admin-console/content-shared');
+
 const {
   filterAdminContentItems,
+  getAdminContentConsolePageData,
   getAdminContentFilterState,
-  getAdminContentOverviewData,
   getAdminContentPublicFallbackLabel
 } = await import('../src/lib/admin-console/content');
 
 type AdminContentIndexItem = import('../src/lib/admin-console/content').AdminContentIndexItem;
+type EssayEntry = import('../src/lib/content').EssayEntry;
+type BitsEntry = import('../src/lib/bits').BitsEntry;
+type MemoEntry = import('../src/lib/admin-console/content').MemoEntry;
 
-const mockGetEssayDerivedText = vi.mocked(contentLib.getEssayDerivedText);
-const mockGetMemoDerivedText = vi.mocked(contentLib.getMemoDerivedText);
-const mockGetPublished = vi.mocked(contentLib.getPublished);
-const mockGetSortedEssays = vi.mocked(contentLib.getSortedEssays);
-const mockGetBitsDerivedText = vi.mocked(bitsLib.getBitsDerivedText);
-const mockGetBitsSearchIndex = vi.mocked(bitsLib.getBitsSearchIndex);
-const mockGetSortedBits = vi.mocked(bitsLib.getSortedBits);
+const mockedContent = vi.mocked(contentModule);
+const mockedBits = vi.mocked(bitsModule);
+const mockedContentShared = vi.mocked(contentSharedModule);
 
 const createItem = (overrides: Partial<AdminContentIndexItem> = {}): AdminContentIndexItem => ({
   collection: 'essay',
@@ -45,42 +51,103 @@ const createItem = (overrides: Partial<AdminContentIndexItem> = {}): AdminConten
   slug: 'example-entry',
   relativePath: 'src/content/essay/example.md',
   publicHref: '/archive/example-entry/',
-  excerpt: 'Example summary',
   isDraft: false,
   archive: true,
   date: new Date('2026-04-01T08:00:00.000Z'),
   dateLabel: '2026-04-01 08:00',
-  dateValue: '2026-04-01',
   year: 2026,
   tags: ['astro', 'admin'],
-  frontmatterFields: [],
   searchHaystack: 'example entry example-entry astro admin',
   ...overrides
 });
 
+const createEssayEntry = (overrides: Partial<EssayEntry> = {}): EssayEntry => ({
+  id: 'admin-console-guide.md',
+  body: 'Essay body text',
+  data: {
+    title: 'Admin Console Guide',
+    description: 'Guide description',
+    date: new Date('2026-04-01T00:00:00.000Z'),
+    tags: ['admin'],
+    draft: false,
+    archive: true
+  },
+  ...overrides
+} as EssayEntry);
+
+const createBitsEntry = (overrides: Partial<BitsEntry> = {}): BitsEntry => ({
+  id: 'bits-2026-02-03-2230.md',
+  body: 'Bits body text',
+  data: {
+    title: 'Bits Note',
+    description: 'Bits description',
+    date: new Date('2026-02-03T14:30:00.000Z'),
+    tags: ['bits'],
+    draft: false
+  },
+  ...overrides
+} as BitsEntry);
+
+const createMemoEntry = (overrides: Partial<MemoEntry> = {}): MemoEntry => ({
+  id: 'index.md',
+  body: 'Memo body text',
+  data: {
+    title: 'Memo',
+    subtitle: 'Memo subtitle',
+    date: new Date('2026-01-01T00:00:00.000Z'),
+    draft: false,
+    slug: 'memo'
+  },
+  ...overrides
+} as MemoEntry);
+
 describe('admin-console/content', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedContentShared.listAdminCollectionSourceFiles.mockImplementation(async (collection) => {
+      if (collection === 'essay') return ['essay-a.md', 'essay-b.md'];
+      if (collection === 'bits') return ['bits-a.md'];
+      return ['memo-a.md'];
+    });
+    mockedContent.getSortedEssays.mockResolvedValue([createEssayEntry()]);
+    mockedContent.getPublished.mockResolvedValue([createMemoEntry()]);
+    mockedContent.getEssaySlug.mockImplementation((entry) => entry.id.replace(/\.mdx?$/i, ''));
+    mockedContent.getEssayDerivedText.mockReturnValue({
+      plainText: 'Essay body text',
+      text: 'essay body text',
+      excerpt: 'Essay body'
+    });
+    mockedContent.getMemoDerivedText.mockReturnValue({
+      plainText: 'Memo body text',
+      excerptText: 'Memo body text'
+    });
+    mockedBits.getSortedBits.mockResolvedValue([createBitsEntry()]);
+    mockedBits.getBitSlug.mockImplementation((entry) => entry.id.replace(/\.mdx?$/i, ''));
+    mockedBits.getBitsDerivedText.mockReturnValue({
+      plainText: 'Bits body text',
+      text: 'bits body text',
+      excerpt: 'Bits body',
+      shouldRenderFull: true
+    });
+    mockedBits.getBitsSearchIndex.mockResolvedValue([]);
   });
 
   it('normalizes content filter state from URL search params', () => {
     const state = getAdminContentFilterState(new URLSearchParams([
       ['q', '  Astro   Admin  '],
+      ['collection', 'bits'],
       ['draft', 'draft'],
-      ['tag', 'astro'],
+      ['tag', 'Astro Build'],
       ['year', '2026'],
-      ['page', '3'],
-      ['entry', 'essay/example.md'],
       ['sort', 'title']
     ]));
 
     expect(state.query).toBe('Astro   Admin');
     expect(state.queryTokens).toEqual(['astro', 'admin']);
+    expect(state.collection).toBe('bits');
     expect(state.draft).toBe('draft');
-    expect(state.tag).toBe('astro');
+    expect(state.tag).toBe('astro-build');
     expect(state.year).toBe(2026);
-    expect(state.page).toBe(3);
-    expect(state.entry).toBe('essay/example.md');
     expect(state.sort).toBe('title');
   });
 
@@ -94,7 +161,6 @@ describe('admin-console/content', () => {
         isDraft: true,
         tags: ['draft'],
         year: 2025,
-        dateValue: '2025-03-01',
         searchHaystack: 'draft entry draft-entry draft'
       }),
       createItem({
@@ -110,13 +176,12 @@ describe('admin-console/content', () => {
     ];
 
     const filtered = filterAdminContentItems(items, {
+      collection: 'all',
       query: 'example',
       queryTokens: ['example'],
       draft: 'published',
       tag: 'astro',
       year: 2026,
-      page: 1,
-      entry: '',
       sort: 'recent'
     });
 
@@ -124,95 +189,133 @@ describe('admin-console/content', () => {
     expect(filtered[0]?.id).toBe('essay/example.md');
   });
 
-  it('builds overview summaries from metadata without deriving body text', async () => {
-    mockGetEssayDerivedText.mockImplementation(() => {
-      throw new Error('overview should not derive essay body text');
-    });
-    mockGetBitsDerivedText.mockImplementation(() => {
-      throw new Error('overview should not derive bits body text');
-    });
-    mockGetBitsSearchIndex.mockImplementation(() => {
-      throw new Error('overview should not build bits search index');
+  it('filters content items by collection scope before other filters', () => {
+    const items = [
+      createItem(),
+      createItem({
+        collection: 'bits',
+        collectionLabel: '絮语',
+        id: 'bits/note.md',
+        title: 'Bits Note',
+        slug: 'bits-note',
+        relativePath: 'src/content/bits/note.md',
+        tags: ['admin'],
+        searchHaystack: 'bits note bits-note admin'
+      })
+    ];
+
+    const filtered = filterAdminContentItems(items, {
+      collection: 'bits',
+      query: '',
+      queryTokens: [],
+      draft: 'all',
+      tag: 'admin',
+      year: null,
+      sort: 'recent'
     });
 
-    mockGetSortedEssays.mockResolvedValue([
-      {
-        id: 'essay/latest.md',
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0]?.collection).toBe('bits');
+  });
+
+  it('loads full item data only for the selected collection scope', async () => {
+    const pageData = await getAdminContentConsolePageData(new URLSearchParams([
+      ['collection', 'essay']
+    ]));
+
+    expect(mockedContent.getSortedEssays).toHaveBeenCalledTimes(1);
+    expect(mockedBits.getSortedBits).not.toHaveBeenCalled();
+    expect(mockedContent.getPublished).not.toHaveBeenCalled();
+    expect(mockedContent.getEssayDerivedText).not.toHaveBeenCalled();
+    expect(mockedBits.getBitsSearchIndex).not.toHaveBeenCalled();
+    expect(pageData.totalCount).toBe(4);
+    expect(pageData.collectionOptions).toEqual([
+      { value: 'all', label: '全部内容', count: 4 },
+      { value: 'essay', label: '随笔', count: 2 },
+      { value: 'bits', label: '絮语', count: 1 },
+      { value: 'memo', label: '小记', count: 1 }
+    ]);
+    expect(pageData.tagOptions).toEqual([
+      { value: 'admin', label: 'admin', count: 1 }
+    ]);
+    expect(pageData.sections).toHaveLength(1);
+    expect(pageData.sections[0]?.collection).toBe('essay');
+    expect(pageData.sections[0]?.totalCount).toBe(2);
+  });
+
+  it('keeps an active URL tag visible even when no loaded item has that tag', async () => {
+    const pageData = await getAdminContentConsolePageData(new URLSearchParams([
+      ['collection', 'essay'],
+      ['tag', 'Missing Tag']
+    ]));
+
+    expect(pageData.filterState.tag).toBe('missing-tag');
+    expect(pageData.filteredCount).toBe(0);
+    expect(pageData.hasActiveFilters).toBe(true);
+    expect(pageData.tagOptions).toEqual([
+      { value: 'admin', label: 'admin', count: 1 },
+      { value: 'missing-tag', label: 'missing-tag', count: 0 }
+    ]);
+  });
+
+  it('loads body search text only when a query is active', async () => {
+    const pageData = await getAdminContentConsolePageData(new URLSearchParams([
+      ['collection', 'essay'],
+      ['q', 'body']
+    ]));
+
+    expect(mockedContent.getSortedEssays).toHaveBeenCalledTimes(1);
+    expect(mockedContent.getEssayDerivedText).toHaveBeenCalledTimes(1);
+    expect(mockedBits.getSortedBits).not.toHaveBeenCalled();
+    expect(mockedContent.getPublished).not.toHaveBeenCalled();
+    expect(pageData.filteredCount).toBe(1);
+    expect(pageData.sections[0]?.items[0]?.id).toBe('admin-console-guide.md');
+  });
+
+  it('builds bits edit list hrefs without loading the public search index', async () => {
+    const pageData = await getAdminContentConsolePageData(new URLSearchParams([
+      ['collection', 'bits']
+    ]));
+
+    expect(mockedBits.getSortedBits).toHaveBeenCalledTimes(1);
+    expect(mockedBits.getBitsSearchIndex).not.toHaveBeenCalled();
+    expect(pageData.sections[0]?.items[0]?.publicHref).toBe('/bits/#bit-bits-2026-02-03-2230.md');
+  });
+
+  it('calculates bits public href pages from published entries only', async () => {
+    const draftEntry = createBitsEntry({
+      id: 'draft.md',
+      data: {
+        ...createBitsEntry().data,
+        title: 'Draft Bits',
+        draft: true
+      }
+    });
+    const publishedEntries = Array.from({ length: 20 }, (_, index) => {
+      const id = `published-${String(index + 1).padStart(2, '0')}.md`;
+      return createBitsEntry({
+        id,
         data: {
-          date: new Date('2026-04-03T08:00:00.000Z'),
+          ...createBitsEntry().data,
+          title: `Published ${index + 1}`,
           draft: false
         }
-      } as never,
-      {
-        id: 'essay/draft.md',
-        data: {
-          date: new Date('2026-03-01T08:00:00.000Z'),
-          draft: true
-        }
-      } as never
-    ]);
-    mockGetSortedBits.mockResolvedValue([
-      {
-        id: 'bits/latest.md',
-        data: {
-          date: new Date('2026-04-02T08:00:00.000Z'),
-          draft: false
-        }
-      } as never,
-      {
-        id: 'bits/draft.md',
-        data: {
-          date: new Date('2026-02-01T08:00:00.000Z'),
-          draft: true
-        }
-      } as never
-    ]);
-    mockGetPublished.mockResolvedValue([
-      {
-        id: 'memo/latest.md',
-        data: {
-          date: new Date('2026-01-15T08:00:00.000Z'),
-          draft: false
-        }
-      } as never,
-      {
-        id: 'memo/draft.md',
-        data: {
-          date: null,
-          draft: true
-        }
-      } as never
-    ]);
-
-    const overview = await getAdminContentOverviewData();
-    const summaryByKey = Object.fromEntries(overview.summaries.map((summary) => [summary.key, summary]));
-
-    expect(summaryByKey.essay).toMatchObject({
-      key: 'essay',
-      label: '随笔',
-      totalCount: 2,
-      draftCount: 1
+      });
     });
-    expect(summaryByKey.bits).toMatchObject({
-      key: 'bits',
-      label: '絮语',
-      totalCount: 2,
-      draftCount: 1
+    mockedBits.getSortedBits.mockResolvedValue([draftEntry, ...publishedEntries]);
+    mockedContentShared.listAdminCollectionSourceFiles.mockImplementation(async (collection) => {
+      if (collection === 'bits') return ['draft.md', ...publishedEntries.map((entry) => entry.id)];
+      return [];
     });
-    expect(summaryByKey.memo).toMatchObject({
-      key: 'memo',
-      label: '小记',
-      totalCount: 2,
-      draftCount: 1
-    });
-    expect(summaryByKey.essay?.latestDateLabel).not.toBe('未设置日期');
-    expect(summaryByKey.bits?.latestDateLabel).not.toBe('未设置日期');
-    expect(summaryByKey.memo?.latestDateLabel).not.toBe('未设置日期');
 
-    expect(mockGetEssayDerivedText).not.toHaveBeenCalled();
-    expect(mockGetMemoDerivedText).not.toHaveBeenCalled();
-    expect(mockGetBitsDerivedText).not.toHaveBeenCalled();
-    expect(mockGetBitsSearchIndex).not.toHaveBeenCalled();
+    const pageData = await getAdminContentConsolePageData(new URLSearchParams([
+      ['collection', 'bits']
+    ]));
+    const draftItem = pageData.sections[0]?.items.find((item) => item.id === 'draft.md');
+    const lastFirstPageItem = pageData.sections[0]?.items.find((item) => item.id === 'published-20.md');
+
+    expect(draftItem?.publicHref).toBeNull();
+    expect(lastFirstPageItem?.publicHref).toBe('/bits/#bit-published-20.md');
   });
 
   it('returns readable public fallback labels for non-public entries', () => {

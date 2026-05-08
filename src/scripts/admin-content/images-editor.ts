@@ -37,15 +37,22 @@ type ImageRowRefs = {
 
 const base = import.meta.env.BASE_URL ?? '/';
 const META_PREVIEW_DEBOUNCE_MS = 360;
+type ImageRowField = 'src' | 'width' | 'height';
+
+const getRowField = (row: HTMLElement, field: ImageRowField): HTMLElement | null =>
+  row.querySelector<HTMLElement>(`[data-admin-content-image-field="${field}"], [data-field-path$=".${field}"]`);
+
+const getRowError = (row: HTMLElement, field: ImageRowField): HTMLElement | null =>
+  row.querySelector<HTMLElement>(`[data-admin-content-image-error="${field}"], [data-field-error$=".${field}"]`);
 
 const getRowRefs = (row: HTMLElement): ImageRowRefs => ({
   row,
-  titleEl: row.querySelector<HTMLElement>('[data-admin-content-image-title], .admin-content-image-row__title'),
-  srcField: row.querySelector<HTMLElement>('[data-field-path$=".src"]'),
+  titleEl: row.querySelector<HTMLElement>('[data-admin-content-image-title]'),
+  srcField: getRowField(row, 'src'),
   srcInput: row.querySelector<HTMLInputElement>('[data-admin-content-image-src]'),
-  widthField: row.querySelector<HTMLElement>('[data-field-path$=".width"]'),
+  widthField: getRowField(row, 'width'),
   widthInput: row.querySelector<HTMLInputElement>('[data-admin-content-image-width]'),
-  heightField: row.querySelector<HTMLElement>('[data-field-path$=".height"]'),
+  heightField: getRowField(row, 'height'),
   heightInput: row.querySelector<HTMLInputElement>('[data-admin-content-image-height]'),
   altInput: row.querySelector<HTMLInputElement>('[data-admin-content-image-alt]'),
   metaEl: row.querySelector<HTMLElement>('[data-admin-content-image-meta]'),
@@ -53,9 +60,9 @@ const getRowRefs = (row: HTMLElement): ImageRowRefs => ({
   previewImg: row.querySelector<HTMLImageElement>('[data-admin-content-image-preview-img]'),
   removeBtn: row.querySelector<HTMLButtonElement>('[data-admin-content-image-remove]'),
   pickBtn: row.querySelector<HTMLButtonElement>('[data-admin-content-image-pick]'),
-  srcError: row.querySelector<HTMLElement>('[data-field-error$=".src"]'),
-  widthError: row.querySelector<HTMLElement>('[data-field-error$=".width"]'),
-  heightError: row.querySelector<HTMLElement>('[data-field-error$=".height"]')
+  srcError: getRowError(row, 'src'),
+  widthError: getRowError(row, 'width'),
+  heightError: getRowError(row, 'height')
 });
 
 const setPreview = (refs: ImageRowRefs, previewSrc: string | null) => {
@@ -112,6 +119,7 @@ const serializeRows = (rows: readonly ImageRowRefs[]): string => {
 const renumberRows = (rows: readonly ImageRowRefs[]) => {
   rows.forEach((refs, index) => {
     refs.titleEl && (refs.titleEl.textContent = `图片 #${index + 1}`);
+    refs.srcInput?.setAttribute('aria-label', `图片 ${index + 1} src`);
     if (refs.srcField) refs.srcField.dataset.fieldPath = `images[${index}].src`;
     if (refs.widthField) refs.widthField.dataset.fieldPath = `images[${index}].width`;
     if (refs.heightField) refs.heightField.dataset.fieldPath = `images[${index}].height`;

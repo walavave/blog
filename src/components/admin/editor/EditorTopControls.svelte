@@ -16,6 +16,7 @@ import EditorToolbar from './EditorToolbar.svelte';
 type Props = {
   actionMenuElement: HTMLDivElement | null;
   busy: boolean;
+  bodyToolsEnabled?: boolean;
   outlineOpen: boolean;
   outlineVisible: boolean;
   outlineToggleLabel: string;
@@ -68,6 +69,7 @@ type Props = {
 let {
   actionMenuElement = $bindable(null),
   busy,
+  bodyToolsEnabled = true,
   outlineOpen,
   outlineVisible,
   outlineToggleLabel,
@@ -118,46 +120,48 @@ let {
 }: Props = $props();
 </script>
 
-<EditorToolbar
-  {busy}
-  {outlineOpen}
-  {outlineVisible}
-  {outlineToggleLabel}
-  {outlineControlDisabled}
-  {outlinePanelId}
-  {syntaxOpen}
-  {syntaxVisible}
-  {syntaxToggleLabel}
-  {syntaxControlDisabled}
-  {syntaxPanelId}
-  {lineNumbersEnabled}
-  {lineNumbersToggleLabel}
-  {markdownHighlightTheme}
-  {editorLayoutIsSplit}
-  {editorLayoutToggleLabel}
-  {editorLayoutToggleIcon}
-  {singleViewActive}
-  {singleViewReturnLabel}
-  {splitBothIsCompact}
-  {compactPaneToggleLabel}
-  {compactPaneToggleText}
-  {editViewToggleLabel}
-  {previewViewToggleLabel}
-  {effectiveViewMode}
-  {onApplyTool}
-  {onApplyHeading}
-  {onApplyCallout}
-  {onInsertText}
-  {onOpenGallery}
-  {onToggleOutline}
-  {onToggleSyntax}
-  {onToggleLineNumbers}
-  {onSelectMarkdownHighlightTheme}
-  {onToggleLayout}
-  {onToggleView}
-  {onReturnToBothView}
-  {onToggleCompactPane}
-/>
+{#if bodyToolsEnabled}
+  <EditorToolbar
+    {busy}
+    {outlineOpen}
+    {outlineVisible}
+    {outlineToggleLabel}
+    {outlineControlDisabled}
+    {outlinePanelId}
+    {syntaxOpen}
+    {syntaxVisible}
+    {syntaxToggleLabel}
+    {syntaxControlDisabled}
+    {syntaxPanelId}
+    {lineNumbersEnabled}
+    {lineNumbersToggleLabel}
+    {markdownHighlightTheme}
+    {editorLayoutIsSplit}
+    {editorLayoutToggleLabel}
+    {editorLayoutToggleIcon}
+    {singleViewActive}
+    {singleViewReturnLabel}
+    {splitBothIsCompact}
+    {compactPaneToggleLabel}
+    {compactPaneToggleText}
+    {editViewToggleLabel}
+    {previewViewToggleLabel}
+    {effectiveViewMode}
+    {onApplyTool}
+    {onApplyHeading}
+    {onApplyCallout}
+    {onInsertText}
+    {onOpenGallery}
+    {onToggleOutline}
+    {onToggleSyntax}
+    {onToggleLineNumbers}
+    {onSelectMarkdownHighlightTheme}
+    {onToggleLayout}
+    {onToggleView}
+    {onReturnToBothView}
+    {onToggleCompactPane}
+  />
+{/if}
 
 <EditorActionMenu
   bind:element={actionMenuElement}

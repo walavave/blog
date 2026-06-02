@@ -105,15 +105,18 @@ const memoEditorPayload = selectedEntryEditorPayload?.collection === 'memo'
   : null;
 // Keep the Svelte island behind a DEV-only dynamic import; a static import leaks
 // editor chunks into the production build.
-let EssayEditorIsland: any = null;
-if (import.meta.env.DEV && essayEditorPayload) {
-  EssayEditorIsland = (await import('./editor/EssayEditorIsland.astro')).default;
+// bits 仍保留 legacy frontmatter 表单；Svelte shell 已抽出 adapter 边界，
+// 但 bits 需要独立工作区布局后再切换，避免把主编辑面临时降级为弹窗表单。
+const svelteEditorPayload = essayEditorPayload;
+let ContentEditorIsland: any = null;
+if (import.meta.env.DEV && svelteEditorPayload) {
+  ContentEditorIsland = (await import('./editor/EssayEditorIsland.astro')).default;
 }
 const adminStylesHref = contentEditDevState?.stylesHref ?? adminShellStylesHref;
 const collectionHref = withBase(getAdminContentEntryListHref(collection));
 const shouldUseLegacyContentEditor = Boolean(bitsEditorPayload);
-const shouldUseSvelteEssayEditor = Boolean(EssayEditorIsland);
-const contentEditorBodyClass = shouldUseSvelteEssayEditor ? 'admin-page--content-editor' : undefined;
+const shouldUseSvelteContentEditor = Boolean(ContentEditorIsland);
+const contentEditorBodyClass = shouldUseSvelteContentEditor ? 'admin-page--content-editor' : undefined;
 const adminContentEntryEndpoint = withBase(ADMIN_CONTENT_ENTRY_API_PATH);
 const adminContentExportEndpoint = withBase(ADMIN_CONTENT_EXPORT_API_PATH);
 const adminContentDeleteEndpoint = withBase(ADMIN_CONTENT_DELETE_API_PATH);
@@ -189,7 +192,7 @@ const bitsImageRows = selectedBitsImageRows.length > 0
 ---
 
 <AdminLayout
-  title={shouldUseSvelteEssayEditor ? editTitle : 'Content Console'}
+  title={shouldUseSvelteContentEditor ? editTitle : 'Content Console'}
   stylesHref={adminStylesHref}
   bodyClass={contentEditorBodyClass}
   adminSidebarScope="page"
@@ -198,7 +201,7 @@ const bitsImageRows = selectedBitsImageRows.length > 0
     currentRoute="content"
     title="Content Console"
     subtitle={contentConsoleSubtitle}
-    showHeader={!shouldUseSvelteEssayEditor}
+    showHeader={!shouldUseSvelteContentEditor}
     showNav={false}
   >
     {shouldShowContentConsole && shouldUseLegacyContentEditor ? (
@@ -214,14 +217,14 @@ const bitsImageRows = selectedBitsImageRows.length > 0
           class:list={[
             'admin-content-console',
             'admin-content-edit-page',
-            shouldUseSvelteEssayEditor && 'admin-content-edit-page--essay'
+            shouldUseSvelteContentEditor && 'admin-content-edit-page--essay'
           ]}
           data-admin-content-root={shouldUseLegacyContentEditor ? true : undefined}
         >
           <header class="admin-content-page-head">
             <div class="admin-content-page-head__copy">
               {
-                shouldUseSvelteEssayEditor ? (
+                shouldUseSvelteContentEditor ? (
                   <div class="admin-content-title-row">
                     <h2 class="admin-content-heading">{editTitle}</h2>
                     <button
@@ -243,7 +246,7 @@ const bitsImageRows = selectedBitsImageRows.length > 0
                 )
               }
               {
-                !shouldUseSvelteEssayEditor ? (
+                !shouldUseSvelteContentEditor ? (
                   <p class="admin-content-copy">
                     <code>{selectedEntryEditorPayload.relativePath}</code>
                   </p>
@@ -252,10 +255,10 @@ const bitsImageRows = selectedBitsImageRows.length > 0
             </div>
             <div
               class="admin-content-actions"
-              data-admin-editor-page-actions-host={shouldUseSvelteEssayEditor ? true : undefined}
+              data-admin-editor-page-actions-host={shouldUseSvelteContentEditor ? true : undefined}
             >
               {
-                shouldUseSvelteEssayEditor ? (
+                shouldUseSvelteContentEditor ? (
                   <a
                     class="admin-btn admin-btn--ghost admin-btn--compact"
                     href={withBase('/admin/content/')}
@@ -274,22 +277,22 @@ const bitsImageRows = selectedBitsImageRows.length > 0
           </header>
 
           {
-            shouldUseSvelteEssayEditor ? (
+            shouldUseSvelteContentEditor ? (
               <article class="admin-content-editor admin-content-editor--svelte">
-                <EssayEditorIsland
+                <ContentEditorIsland
                   endpoint={adminContentEntryEndpoint}
                   exportEndpoint={adminContentExportEndpoint}
                   deleteEndpoint={adminContentDeleteEndpoint}
                   previewEndpoint={adminPreviewEndpoint}
                   imageUploadEndpoint={adminImageUploadEndpoint}
                   returnHref={withBase('/admin/content/')}
-                  collection="essay"
-                  entryId={essayEditorPayload!.entryId}
-                  relativePath={essayEditorPayload!.relativePath}
-                  defaultPublicSlug={essayEditorPayload!.defaultPublicSlug}
-                  revision={essayEditorPayload!.revision}
-                  initialFrontmatter={essayEditorPayload!.values}
-                  initialBody={essayEditorPayload!.bodyText}
+                  collection={svelteEditorPayload!.collection}
+                  entryId={svelteEditorPayload!.entryId}
+                  relativePath={svelteEditorPayload!.relativePath}
+                  defaultPublicSlug={svelteEditorPayload!.defaultPublicSlug}
+                  revision={svelteEditorPayload!.revision}
+                  initialFrontmatter={svelteEditorPayload!.values}
+                  initialBody={svelteEditorPayload!.bodyText}
                   essayOutlineItems={contentEditDevState?.essayOutlineItems ?? []}
                   initialArticleInfoOpen={initialArticleInfoOpen}
                 />

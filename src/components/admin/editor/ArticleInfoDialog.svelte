@@ -1,8 +1,12 @@
 <script lang="ts">
-import type { AdminEssayEditorValues } from '../../../lib/admin-console/content-shared';
+import type {
+  AdminContentEditorValues,
+  AdminContentWriteCollectionKey
+} from '../../../lib/admin-console/content-shared';
 import { createModalDialogFocusController } from '../../../scripts/admin-console/modal-dialog-focus';
 import AdminEditorIcon from './AdminEditorIcon.svelte';
 import FrontmatterSidebar from './FrontmatterSidebar.svelte';
+import { isEssayEditorValues } from './content-editor-adapters';
 
 type AdminContentIssue = {
   path: string;
@@ -11,7 +15,8 @@ type AdminContentIssue = {
 
 type Props = {
   open: boolean;
-  value: AdminEssayEditorValues;
+  value: AdminContentEditorValues;
+  collection?: AdminContentWriteCollectionKey;
   issues?: readonly AdminContentIssue[];
   disabled?: boolean;
   loading?: boolean;
@@ -19,6 +24,8 @@ type Props = {
   canSave?: boolean;
   slugPlaceholder?: string;
   relativePath?: string;
+  dialogTitle?: string;
+  fieldsAriaLabel?: string;
   onClose: () => void;
   onReset: () => void;
   onSave: () => void;
@@ -27,6 +34,7 @@ type Props = {
 let {
   open,
   value = $bindable(),
+  collection = 'essay',
   issues = [],
   disabled = false,
   loading = false,
@@ -34,6 +42,8 @@ let {
   canSave = false,
   slugPlaceholder = '',
   relativePath = '',
+  dialogTitle = '文章信息',
+  fieldsAriaLabel = '随笔字段',
   onClose,
   onReset,
   onSave
@@ -41,6 +51,8 @@ let {
 
 let panelEl = $state<HTMLElement | null>(null);
 let closeButtonEl = $state<HTMLButtonElement | null>(null);
+const closeLabel = $derived(`关闭${dialogTitle}`);
+const loadingText = $derived(`正在加载${dialogTitle}`);
 
 const closeDialog = () => {
   onClose();
@@ -84,7 +96,7 @@ $effect(() => {
     <button
       class="admin-modal__backdrop admin-editor-frontmatter-popover__backdrop"
       type="button"
-      aria-label="关闭文章信息"
+      aria-label={closeLabel}
       onclick={closeDialog}
     ></button>
     <div
@@ -98,7 +110,7 @@ $effect(() => {
     >
       <header class="admin-modal__head admin-editor-frontmatter-popover__head">
         <div class="admin-editor-frontmatter-popover__title-row">
-          <h3 id="admin-editor-frontmatter-panel-title" class="admin-modal__title admin-content-section-title">文章信息</h3>
+          <h3 id="admin-editor-frontmatter-panel-title" class="admin-modal__title admin-content-section-title">{dialogTitle}</h3>
           {#if relativePath}
             <code class="admin-editor-frontmatter-popover__source-path" title={relativePath}>{relativePath}</code>
           {/if}
@@ -107,7 +119,7 @@ $effect(() => {
           bind:this={closeButtonEl}
           class="admin-btn admin-btn--ghost admin-btn--compact admin-btn--icon admin-editor-frontmatter-popover__close"
           type="button"
-          aria-label="关闭文章信息"
+          aria-label={closeLabel}
           disabled={disabled}
           onclick={closeDialog}
         >
@@ -117,10 +129,10 @@ $effect(() => {
       <div class="admin-modal__body">
         {#if loading}
           <div class="admin-editor-frontmatter-popover__loading" role="status" aria-live="polite">
-            正在加载文章信息
+            {loadingText}
           </div>
         {:else}
-          <FrontmatterSidebar bind:value {issues} {disabled} {slugPlaceholder} />
+          <FrontmatterSidebar bind:value {collection} {issues} {disabled} {slugPlaceholder} ariaLabel={fieldsAriaLabel} />
         {/if}
       </div>
       <footer class="admin-modal__actions admin-editor-frontmatter-popover__actions">
@@ -129,10 +141,12 @@ $effect(() => {
             <input name="draft" type="checkbox" bind:checked={value.draft} disabled={disabled || loading} />
             <span>草稿</span>
           </label>
-          <label class="admin-toggle-row">
-            <input name="archive" type="checkbox" bind:checked={value.archive} disabled={disabled || loading} />
-            <span>归档</span>
-          </label>
+          {#if collection === 'essay' && isEssayEditorValues(value)}
+            <label class="admin-toggle-row">
+              <input name="archive" type="checkbox" bind:checked={value.archive} disabled={disabled || loading} />
+              <span>归档</span>
+            </label>
+          {/if}
         </div>
         <div class="admin-editor-frontmatter-popover__buttons">
           <button class="admin-btn admin-btn--ghost admin-btn--compact" type="button" onclick={onReset} disabled={disabled || loading || !dirty}>

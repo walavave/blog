@@ -1,9 +1,5 @@
 <script lang="ts">
 import { tick } from 'svelte';
-import {
-  cloneFrontmatter,
-  isEqualFrontmatter
-} from '../../../lib/admin-console/essay-editor-values';
 import { containsMarkdownMath } from '../../../lib/markdown-math';
 import { ensureMarkdownMathStylesheet } from '../../../lib/markdown-math-styles';
 import {
@@ -15,12 +11,12 @@ import {
 } from '../../../lib/admin-console/ui-prefs-keys';
 import { closeClosestAdminDetailsMenu } from '../../../scripts/admin-content/details-menu';
 import {
-  deleteEssayEntry,
-  renderEssayPreview,
-  saveEssayEntry,
+  deleteContentEntry as requestContentDelete,
+  renderContentPreview,
+  saveContentEntry,
   type AdminContentIssue,
   type AdminContentWriteResult
-} from './essay-editor-client';
+} from './content-editor-client';
 import { flattenEntryIdToSlug } from '../../../utils/slug-rules';
 import EditorDialogs from './EditorDialogs.svelte';
 import EditorFooterActions from './EditorFooterActions.svelte';
@@ -44,7 +40,6 @@ import {
   DEFAULT_EDITOR_DISPLAY_PREFERENCE,
   getEditorSidePanelLayout,
   getPreviewDebounceMs,
-  getWriteFieldLabel,
   mergeEditorDisplayPreference,
   normalizeEditorBodyValue,
   readStoredEditorDisplayPreference,
@@ -82,6 +77,7 @@ import {
 import type { MarkdownToolbarCommand } from './markdown-tools';
 import { createMarkdownCommandDispatcher } from './editor-markdown-command-dispatcher';
 import type { EditorShellProps } from './editor-shell-props';
+import { getContentEditorAdapter } from './content-editor-adapters';
 
 const LEAVE_CONFIRM_MESSAGE = '当前有未保存更改，确定要离开此页吗？';
 const ARTICLE_INFO_TRIGGER_SELECTOR = '[data-admin-article-info-trigger]';
@@ -89,7 +85,6 @@ const PAGE_ACTIONS_HOST_SELECTOR = '[data-admin-editor-page-actions-host]';
 const FRONTMATTER_PANEL_ID = 'admin-editor-frontmatter-panel';
 const OUTLINE_PANEL_ID = 'admin-editor-outline-panel';
 const SYNTAX_PANEL_ID = 'admin-editor-syntax-panel';
-const FRONTMATTER_ISSUE_PATHS = new Set(['title', 'date', 'publishedAt', 'description', 'tags', 'slug', 'badge', 'cover']);
 const PREVIEW_OUTLINE_KEY_ATTR = 'data-admin-outline-key';
 // 无编辑器默认项或显式偏好时优先 split，窄容器视觉回退由 effective view 派生。
 const DEFAULT_EDITOR_LAYOUT_INTENT: EditorLayoutMode = 'split';
@@ -119,17 +114,23 @@ let {
   defaultPublicSlug,
   revision,
   initialFrontmatter,
-  initialBody,
+  initialBody = '',
   essayOutlineItems = [],
   initialArticleInfoOpen = false
 }: EditorShellProps = $props();
 
+const editorAdapter = getContentEditorAdapter(collection);
 const slugPlaceholder = $derived(defaultPublicSlug || flattenEntryIdToSlug(entryId));
+const bodyEditingEnabled = editorAdapter.capabilities.body;
+const previewEnabled = editorAdapter.capabilities.preview;
+const imageInsertEnabled = editorAdapter.capabilities.imageInsert;
+const galleryInsertEnabled = editorAdapter.capabilities.galleryInsert;
+const essayOutlineEnabled = editorAdapter.capabilities.essayOutline;
 
 const createInitialSnapshot = () => ({
   revision,
-  frontmatter: cloneFrontmatter(initialFrontmatter),
-  body: normalizeEditorBodyValue(initialBody),
+  frontmatter: editorAdapter.cloneValues(initialFrontmatter),
+  body: bodyEditingEnabled ? normalizeEditorBodyValue(initialBody) : '',
   articleInfoOpen: initialArticleInfoOpen
 });
 
@@ -137,9 +138,9 @@ const initialSnapshot = createInitialSnapshot();
 const writeFeedbackStorageKey = $derived(`${WRITE_FEEDBACK_STORAGE_PREFIX}${collection}:${entryId}`);
 
 let currentRevision = $state(initialSnapshot.revision);
-let baselineFrontmatter = $state(cloneFrontmatter(initialSnapshot.frontmatter));
+let baselineFrontmatter = $state(editorAdapter.cloneValues(initialSnapshot.frontmatter));
 let baselineBody = $state(initialSnapshot.body);
-let frontmatter = $state(cloneFrontmatter(initialSnapshot.frontmatter));
+let frontmatter = $state(editorAdapter.cloneValues(initialSnapshot.frontmatter));
 let body = $state(initialSnapshot.body);
 let busy = $state(false);
 let previewBusy = $state(false);
@@ -209,11 +210,13 @@ const isOutlineAvailableForInlineSize = (inlineSize: number): boolean => {
 
 const bodyLineCount = $derived(body.length === 0 ? 1 : body.split(/\r\n|\r|\n/).length);
 const bodyCharCount = $derived(body.length);
-const frontmatterDirty = $derived(!isEqualFrontmatter(frontmatter, baselineFrontmatter));
-const bodyDirty = $derived(body !== baselineBody);
+const frontmatterDirty = $derived(!editorAdapter.isEqualValues(frontmatter, baselineFrontmatter));
+const bodyDirty = $derived(bodyEditingEnabled && body !== baselineBody);
 const isDirty = $derived(frontmatterDirty || bodyDirty);
 const canWriteContent = $derived(!busy && isDirty);
-const frontmatterIssueCount = $derived(issues.filter((issue) => FRONTMATTER_ISSUE_PATHS.has(issue.path)).length);
+const frontmatterIssueCount = $derived(
+  issues.filter((issue) => editorAdapter.isFrontmatterIssuePath(issue.path)).length
+);
 const visibleWriteResult = $derived(!isDirty ? writeResult : null);
 const editorLayout = $derived(explicitEditorLayout ?? DEFAULT_EDITOR_LAYOUT_INTENT);
 const splitWidthIsCompact = $derived(
@@ -280,11 +283,13 @@ const scrollSyncToggleLabel = $derived(
 const scrollSyncControlDisabled = $derived(!scrollSyncAvailable);
 const scrollTopControlDisabled = $derived(!bodyScrollElement && !previewScrollElement);
 const markdownOutlineItems = $derived(
-  outlineVisible && outlineActiveTab === 'headings'
+  essayOutlineEnabled && outlineVisible && outlineActiveTab === 'headings'
     ? extractMarkdownOutline(body)
     : []
 );
-const essayOutlineListItems = $derived(buildEssayOutlineListItems(essayOutlineItems, entryId));
+const essayOutlineListItems = $derived(
+  essayOutlineEnabled ? buildEssayOutlineListItems(essayOutlineItems, entryId) : []
+);
 
 const setStatus = (state: StatusState, text: string) => {
   statusState = state;
@@ -417,11 +422,13 @@ const closeImageInsert = () => {
 };
 
 const handleImageToolRequest = (block: EditableImageBlock | null) => {
+  if (!imageInsertEnabled) return;
   editingImageBlock = block;
   imageInsertOpen = true;
 };
 
 const openGalleryInsert = () => {
+  if (!galleryInsertEnabled) return;
   editingGalleryBlock = null;
   galleryInsertOpen = true;
 };
@@ -432,6 +439,7 @@ const closeGalleryInsert = () => {
 };
 
 const handleGalleryEditRequest = (block: EditableGalleryBlock) => {
+  if (!galleryInsertEnabled) return;
   editingGalleryBlock = block;
   galleryInsertOpen = true;
 };
@@ -612,13 +620,13 @@ const requestContentWrite = async () => {
   setStatus('loading', '内容保存中');
 
   try {
-    const saveOutcome = await saveEssayEntry({
+    const saveOutcome = await saveContentEntry({
       endpoint,
       collection,
       entryId,
       revision: currentRevision,
       frontmatter,
-      ...(bodyDirty ? { body } : {})
+      ...(bodyEditingEnabled && bodyDirty ? { body } : {})
     });
 
     if (saveOutcome.revision && saveOutcome.responseOk) currentRevision = saveOutcome.revision;
@@ -646,10 +654,12 @@ const requestContentWrite = async () => {
     writeResult = result;
     const latestValues = saveOutcome.latestValues;
     const latestBody = saveOutcome.latestBody;
-    const nextBaseline = latestValues ? cloneFrontmatter(latestValues) : cloneFrontmatter(frontmatter);
-    frontmatter = cloneFrontmatter(nextBaseline);
-    baselineFrontmatter = cloneFrontmatter(nextBaseline);
-    baselineBody = latestBody !== null ? normalizeEditorBodyValue(latestBody) : body;
+    const nextBaseline = latestValues
+      ? editorAdapter.cloneValues(latestValues)
+      : editorAdapter.cloneValues(frontmatter);
+    frontmatter = editorAdapter.cloneValues(nextBaseline);
+    baselineFrontmatter = editorAdapter.cloneValues(nextBaseline);
+    baselineBody = bodyEditingEnabled && latestBody !== null ? normalizeEditorBodyValue(latestBody) : body;
     body = baselineBody;
 
     const nextStatusState: StatusState = result.changed ? 'ok' : 'idle';
@@ -667,6 +677,8 @@ const requestContentWrite = async () => {
 };
 
 const requestPreview = async () => {
+  if (!previewEnabled) return;
+
   const requestId = previewRequestId + 1;
   previewRequestId = requestId;
   const sourceSnapshot = body;
@@ -681,7 +693,7 @@ const requestPreview = async () => {
   previewWarnings = [];
 
   try {
-    const previewOutcome = await renderEssayPreview({
+    const previewOutcome = await renderContentPreview({
       endpoint: previewEndpoint,
       collection,
       entryId,
@@ -720,7 +732,7 @@ const requestPreview = async () => {
 };
 
 const resetToBaseline = () => {
-  frontmatter = cloneFrontmatter(baselineFrontmatter);
+  frontmatter = editorAdapter.cloneValues(baselineFrontmatter);
   body = baselineBody;
   clearWriteFeedback();
   clearStoredWriteFeedback(writeFeedbackStorageKey);
@@ -728,7 +740,7 @@ const resetToBaseline = () => {
 };
 
 const resetFrontmatterToBaseline = () => {
-  frontmatter = cloneFrontmatter(baselineFrontmatter);
+  frontmatter = editorAdapter.cloneValues(baselineFrontmatter);
   clearWriteFeedback();
   clearStoredWriteFeedback(writeFeedbackStorageKey);
   clearStatus();
@@ -761,7 +773,7 @@ const deleteContentEntry = async (event: MouseEvent) => {
   }
 
   const confirmed = window.confirm([
-    `确认删除《${frontmatter.title || entryId}》？`,
+    `确认删除《${editorAdapter.getDeleteTitle(frontmatter, entryId)}》？`,
     '',
     `源文件：${relativePath}`,
     ...(isDirty ? ['', '当前未保存改动不会写入文件，删除会移动当前源文件。'] : []),
@@ -777,7 +789,7 @@ const deleteContentEntry = async (event: MouseEvent) => {
   setStatus('loading', '正在移动到回收站');
 
   try {
-    const deleteOutcome = await deleteEssayEntry({
+    const deleteOutcome = await requestContentDelete({
       endpoint: deleteEndpoint,
       collection,
       entryId,
@@ -801,7 +813,7 @@ const deleteContentEntry = async (event: MouseEvent) => {
       return;
     }
 
-    baselineFrontmatter = cloneFrontmatter(frontmatter);
+    baselineFrontmatter = editorAdapter.cloneValues(frontmatter);
     baselineBody = body;
     storeContentListDeleteFeedback();
     window.location.assign(returnHref || '/admin/content/');
@@ -981,12 +993,14 @@ $effect(() => {
 });
 
 $effect(() => {
-  if (containsMarkdownMath(body)) {
+  if (previewEnabled && containsMarkdownMath(body)) {
     ensureMarkdownMathStylesheet();
   }
 });
 
 $effect(() => {
+  if (!previewEnabled) return;
+
   const currentBody = body;
 
   if (!previewInitialized) {
@@ -1021,6 +1035,7 @@ $effect(() => {
   <EditorTopControls
     bind:actionMenuElement={topActionsEl}
     {busy}
+    bodyToolsEnabled={bodyEditingEnabled}
     outlineOpen={outlineWantedOpen}
     {outlineVisible}
     {outlineToggleLabel}
@@ -1070,51 +1085,56 @@ $effect(() => {
     onDelete={deleteContentEntry}
   />
 
-  <EditorWorkspace
-    bind:value={body}
-    disabled={busy}
-    {toolbarCommand}
-    {outlineJumpCommand}
-    {lineNumbersEnabled}
-    {markdownHighlightTheme}
-    {effectiveViewMode}
-    {bodyLineCount}
-    {bodyCharCount}
-    {errors}
-    {issues}
-    {previewError}
-    {previewWarnings}
-    writeResult={visibleWriteResult}
-    {syncScrollEnabled}
-    {scrollSyncToggleLabel}
-    {scrollSyncControlDisabled}
-    {scrollTopControlDisabled}
-    {getWriteFieldLabel}
-    {previewHtml}
-    previewBusy={previewBusy}
-    {sidePanelsVisible}
-    {sidePanelLayout}
-    outlinePanelId={OUTLINE_PANEL_ID}
-    syntaxPanelId={SYNTAX_PANEL_ID}
-    {outlineActiveTab}
-    {markdownOutlineItems}
-    {essayOutlineListItems}
-    onBodyScrollElementChange={setBodyScrollElement}
-    onBodyOutlineJump={handleBodyOutlineJump}
-    onImageToolRequest={handleImageToolRequest}
-    onGalleryEditRequest={handleGalleryEditRequest}
-    onPreviewScrollElementChange={setPreviewScrollElement}
-    onShortcutTool={markdownCommandDispatcher.applyTool}
-    onToggleScrollSync={toggleScrollSync}
-    onScrollToTop={scrollEditorPanesToTop}
-    onOutlineTabChange={setOutlineTab}
-    onOutlineHeadingSelect={handleOutlineHeadingSelect}
-    onSyntaxMaximizeToggle={toggleSyntaxMaximize}
-  />
+  {#if bodyEditingEnabled}
+    <EditorWorkspace
+      bind:value={body}
+      disabled={busy}
+      {toolbarCommand}
+      {outlineJumpCommand}
+      {lineNumbersEnabled}
+      {markdownHighlightTheme}
+      {effectiveViewMode}
+      {bodyLineCount}
+      {bodyCharCount}
+      {errors}
+      {issues}
+      {previewError}
+      {previewWarnings}
+      writeResult={visibleWriteResult}
+      {syncScrollEnabled}
+      {scrollSyncToggleLabel}
+      {scrollSyncControlDisabled}
+      {scrollTopControlDisabled}
+      getWriteFieldLabel={editorAdapter.getWriteFieldLabel}
+      {previewHtml}
+      previewBusy={previewBusy}
+      {sidePanelsVisible}
+      {sidePanelLayout}
+      outlinePanelId={OUTLINE_PANEL_ID}
+      syntaxPanelId={SYNTAX_PANEL_ID}
+      {outlineActiveTab}
+      {markdownOutlineItems}
+      {essayOutlineListItems}
+      onBodyScrollElementChange={setBodyScrollElement}
+      onBodyOutlineJump={handleBodyOutlineJump}
+      onImageToolRequest={handleImageToolRequest}
+      onGalleryEditRequest={handleGalleryEditRequest}
+      onPreviewScrollElementChange={setPreviewScrollElement}
+      onShortcutTool={markdownCommandDispatcher.applyTool}
+      onToggleScrollSync={toggleScrollSync}
+      onScrollToTop={scrollEditorPanesToTop}
+      onOutlineTabChange={setOutlineTab}
+      onOutlineHeadingSelect={handleOutlineHeadingSelect}
+      onSyntaxMaximizeToggle={toggleSyntaxMaximize}
+    />
+  {/if}
 
   <EditorDialogs
     bind:this={editorDialogs}
     bind:frontmatter
+    {collection}
+    dialogTitle={editorAdapter.dialogTitle}
+    fieldsAriaLabel={editorAdapter.fieldsAriaLabel}
     frontmatterOpen={frontmatterPanelOpen}
     {relativePath}
     {issues}
@@ -1126,6 +1146,8 @@ $effect(() => {
     {galleryInsertOpen}
     imageEditDraft={editingImageBlock?.draft ?? null}
     galleryEditDraft={editingGalleryBlock?.draft ?? null}
+    {imageInsertEnabled}
+    {galleryInsertEnabled}
     {imageUploadEndpoint}
     {entryId}
     onFrontmatterClose={closeFrontmatterPanel}

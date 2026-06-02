@@ -527,6 +527,7 @@ $effect(() => {
   <ArticleInfoDialog
     bind:this={dialog}
     bind:value={frontmatter}
+    collection="essay"
     {open}
     {issues}
     disabled={busy}
@@ -534,6 +535,8 @@ $effect(() => {
     {dirty}
     {canSave}
     {slugPlaceholder}
+    dialogTitle="文章信息"
+    fieldsAriaLabel="随笔字段"
     onClose={closeDialog}
     onReset={resetToBaseline}
     onSave={() => void saveEditor()}

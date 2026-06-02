@@ -1,6 +1,9 @@
 <script lang="ts">
-import type { AdminEssayEditorValues } from '../../../lib/admin-console/content-shared';
-import type { AdminContentIssue } from './essay-editor-client';
+import type {
+  AdminContentEditorValues,
+  AdminContentWriteCollectionKey
+} from '../../../lib/admin-console/content-shared';
+import type { AdminContentIssue } from './content-editor-client';
 import ArticleInfoDialog from './ArticleInfoDialog.svelte';
 import GalleryInsertDialog from './GalleryInsertDialog.svelte';
 import ImageInsertDialog from './ImageInsertDialog.svelte';
@@ -9,7 +12,10 @@ import type { ImageBlockDraft } from './image-insert-helpers';
 import type { GalleryBlockDraft } from './gallery-insert-helpers';
 
 type Props = {
-  frontmatter: AdminEssayEditorValues;
+  frontmatter: AdminContentEditorValues;
+  collection: AdminContentWriteCollectionKey;
+  dialogTitle: string;
+  fieldsAriaLabel: string;
   frontmatterOpen: boolean;
   relativePath: string;
   issues: readonly AdminContentIssue[];
@@ -21,6 +27,8 @@ type Props = {
   galleryInsertOpen: boolean;
   imageEditDraft?: ImageBlockDraft | null;
   galleryEditDraft?: GalleryBlockDraft | null;
+  imageInsertEnabled: boolean;
+  galleryInsertEnabled: boolean;
   imageUploadEndpoint: string;
   entryId: string;
   onFrontmatterClose: () => void;
@@ -35,6 +43,9 @@ type Props = {
 
 let {
   frontmatter = $bindable(),
+  collection,
+  dialogTitle,
+  fieldsAriaLabel,
   frontmatterOpen,
   relativePath,
   issues,
@@ -46,6 +57,8 @@ let {
   galleryInsertOpen,
   imageEditDraft = null,
   galleryEditDraft = null,
+  imageInsertEnabled,
+  galleryInsertEnabled,
   imageUploadEndpoint,
   entryId,
   onFrontmatterClose,
@@ -68,6 +81,9 @@ export const captureReturnFocus = (trigger?: Element | null) => {
 <ArticleInfoDialog
   bind:this={articleInfoDialog}
   bind:value={frontmatter}
+  {collection}
+  {dialogTitle}
+  {fieldsAriaLabel}
   open={frontmatterOpen}
   {relativePath}
   {issues}
@@ -80,23 +96,27 @@ export const captureReturnFocus = (trigger?: Element | null) => {
   onSave={onFrontmatterSave}
 />
 
-<ImageInsertDialog
-  open={imageInsertOpen}
-  editDraft={imageEditDraft}
-  uploadEndpoint={imageUploadEndpoint}
-  {entryId}
-  {disabled}
-  onClose={onImageClose}
-  onInsert={onImageInsert}
-/>
+{#if imageInsertEnabled}
+  <ImageInsertDialog
+    open={imageInsertOpen}
+    editDraft={imageEditDraft}
+    uploadEndpoint={imageUploadEndpoint}
+    {entryId}
+    {disabled}
+    onClose={onImageClose}
+    onInsert={onImageInsert}
+  />
+{/if}
 
-<GalleryInsertDialog
-  open={galleryInsertOpen}
-  editDraft={galleryEditDraft}
-  uploadEndpoint={imageUploadEndpoint}
-  {entryId}
-  {disabled}
-  onClose={onGalleryClose}
-  onInsert={onGalleryInsert}
-  onRemove={onGalleryRemove}
-/>
+{#if galleryInsertEnabled}
+  <GalleryInsertDialog
+    open={galleryInsertOpen}
+    editDraft={galleryEditDraft}
+    uploadEndpoint={imageUploadEndpoint}
+    {entryId}
+    {disabled}
+    onClose={onGalleryClose}
+    onInsert={onGalleryInsert}
+    onRemove={onGalleryRemove}
+  />
+{/if}

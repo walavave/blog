@@ -2,7 +2,7 @@
 import type {
   AdminContentIssue,
   AdminContentWriteResult
-} from './essay-editor-client';
+} from './content-editor-client';
 import type {
   EditorSidePanelLayout,
   EditorViewMode

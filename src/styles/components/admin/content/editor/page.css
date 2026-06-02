@@ -58,6 +58,7 @@ body.admin-page--content-editor .admin-console,
 body.admin-page--content-editor .admin-shell,
 body.admin-page--content-editor .admin-content-edit-page--essay,
 body.admin-page--content-editor .admin-content-editor--svelte,
+body.admin-page--content-editor [data-admin-content-editor-island],
 body.admin-page--content-editor [data-admin-essay-editor-island] {
   min-height: 0;
   height: 100%;
@@ -68,6 +69,7 @@ body.admin-page--content-editor [data-admin-essay-editor-island] {
 body.admin-page--content-editor .admin-console,
 body.admin-page--content-editor .admin-shell,
 body.admin-page--content-editor .admin-content-editor--svelte,
+body.admin-page--content-editor [data-admin-content-editor-island],
 body.admin-page--content-editor [data-admin-essay-editor-island] {
   display: grid;
   grid-template-rows: minmax(0, 1fr);

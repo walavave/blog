@@ -281,8 +281,8 @@ const assertAdminContentEditDevShell = (label, response) => {
   );
   assertNoAdminRouteNav(label, response.body);
   expect(
-    response.body.includes('data-admin-essay-editor-island'),
-    `${label} should emit the essay Svelte editor island marker`
+    response.body.includes('data-admin-content-editor-island'),
+    `${label} should emit the content Svelte editor island marker`
   );
   expect(
     !response.body.includes('id="admin-content-bootstrap"'),

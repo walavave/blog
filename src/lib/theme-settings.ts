@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { site as legacySite } from '../../site.config.mjs';
+import { asThemeFontIdForRole, type ThemeFontId } from './fonts/registry';
 import {
   getHeroImageLocalFilePath,
   normalizeBitsAvatarPath,
@@ -36,6 +37,7 @@ import {
   getAdminThemeSettingsMismatchPaths,
   getAdminSocialOrderIssues,
   ADMIN_SIDEBAR_DIVIDER_DEFAULT,
+  ADMIN_TYPOGRAPHY_DEFAULT,
   isAdminNavOrderValue,
   isAdminSocialOrderValue,
   isAdminSidebarDividerVariant,
@@ -48,6 +50,9 @@ export type SidebarNavId = 'essay' | 'bits' | 'memo' | 'archive' | 'about';
 export type PageId = 'essay' | 'archive' | 'bits' | 'memo' | 'about';
 export type HeroPresetId = 'default' | 'none';
 export type SidebarDividerVariant = 'default' | 'subtle' | 'none';
+// ThemeFontId 从字体注册表条目 id 派生：添加字体只需在 registry.ts 增加条目，无需改这里。
+export type { ThemeFontId } from './fonts/registry';
+export type TypographyRole = 'readable' | 'copy' | 'mono' | 'brand';
 export type HomeIntroLinkKey = 'archive' | 'essay' | 'bits' | 'memo' | 'about' | 'tag';
 export type SiteSocialPresetId = 'github' | 'x' | 'email';
 export type SiteSocialKind = 'preset' | 'custom';
@@ -184,6 +189,13 @@ export interface SidebarActionsSettings {
   showAdminEntry: boolean;
 }
 
+export interface TypographySettings {
+  readable: ThemeFontId;
+  copy: ThemeFontId;
+  mono: ThemeFontId;
+  brand: ThemeFontId;
+}
+
 export interface UiSettings {
   codeBlock: {
     showLineNumbers: boolean;
@@ -196,6 +208,7 @@ export interface UiSettings {
   layout: {
     sidebarDivider: SidebarDividerVariant;
   };
+  typography: TypographySettings;
 }
 
 export interface ThemeSettings {
@@ -265,6 +278,10 @@ export interface ThemeSettingsSources {
     articleMetaShowWordCount: SettingSource;
     articleMetaShowReadingTime: SettingSource;
     layoutSidebarDivider: SettingSource;
+    typographyReadable: SettingSource;
+    typographyCopy: SettingSource;
+    typographyMono: SettingSource;
+    typographyBrand: SettingSource;
   };
 }
 
@@ -511,6 +528,9 @@ const DEFAULT_UI: UiSettings = {
   },
   layout: {
     sidebarDivider: ADMIN_SIDEBAR_DIVIDER_DEFAULT
+  },
+  typography: {
+    ...ADMIN_TYPOGRAPHY_DEFAULT
   }
 };
 
@@ -659,6 +679,9 @@ const asSidebarDividerVariant = (value: unknown): SidebarDividerVariant | undefi
   if (typeof value !== 'string') return undefined;
   return isAdminSidebarDividerVariant(value) ? value : undefined;
 };
+
+const asTypographyFontId = (role: TypographyRole, value: unknown): ThemeFontId | undefined =>
+  asThemeFontIdForRole(role, value);
 
 const asHeroImageSrc = (value: unknown): string | null | undefined => {
   const normalized = normalizeHeroImageSrc(value);
@@ -1310,6 +1333,7 @@ export const getThemeSettings = (): ThemeSettingsResolved => {
   const uiSidebarActions = isRecord(uiJson?.sidebarActions) ? uiJson.sidebarActions : undefined;
   const uiArticleMeta = isRecord(uiJson?.articleMeta) ? uiJson.articleMeta : undefined;
   const uiLayout = isRecord(uiJson?.layout) ? uiJson.layout : undefined;
+  const uiTypography = isRecord(uiJson?.typography) ? uiJson.typography : undefined;
 
   const showLineNumbers = resolveValue(
     asBoolean(uiCodeBlock?.showLineNumbers),
@@ -1365,6 +1389,26 @@ export const getThemeSettings = (): ThemeSettingsResolved => {
     asSidebarDividerVariant(uiLayout?.sidebarDivider),
     undefined,
     DEFAULT_UI.layout.sidebarDivider
+  );
+  const typographyReadable = resolveValue(
+    asTypographyFontId('readable', uiTypography?.readable),
+    undefined,
+    DEFAULT_UI.typography.readable
+  );
+  const typographyCopy = resolveValue(
+    asTypographyFontId('copy', uiTypography?.copy),
+    undefined,
+    DEFAULT_UI.typography.copy
+  );
+  const typographyMono = resolveValue(
+    asTypographyFontId('mono', uiTypography?.mono),
+    undefined,
+    DEFAULT_UI.typography.mono
+  );
+  const typographyBrand = resolveValue(
+    asTypographyFontId('brand', uiTypography?.brand),
+    undefined,
+    DEFAULT_UI.typography.brand
   );
 
   const normalizedNav = normalizeSidebarNavItems(nav.value);
@@ -1474,6 +1518,12 @@ export const getThemeSettings = (): ThemeSettingsResolved => {
         },
         layout: {
           sidebarDivider: sidebarDivider.value
+        },
+        typography: {
+          readable: typographyReadable.value,
+          copy: typographyCopy.value,
+          mono: typographyMono.value,
+          brand: typographyBrand.value
         }
       }
     },
@@ -1535,7 +1585,11 @@ export const getThemeSettings = (): ThemeSettingsResolved => {
         articleMetaShowTags: showArticleTags.source,
         articleMetaShowWordCount: showArticleWordCount.source,
         articleMetaShowReadingTime: showArticleReadingTime.source,
-        layoutSidebarDivider: sidebarDivider.source
+        layoutSidebarDivider: sidebarDivider.source,
+        typographyReadable: typographyReadable.source,
+        typographyCopy: typographyCopy.source,
+        typographyMono: typographyMono.source,
+        typographyBrand: typographyBrand.source
       }
     }
   };
@@ -1615,7 +1669,8 @@ const buildEditableThemeSettingsSnapshot = (
       readingMode: { ...resolved.settings.ui.readingMode },
       sidebarActions: { ...resolved.settings.ui.sidebarActions },
       articleMeta: { ...resolved.settings.ui.articleMeta },
-      layout: { ...resolved.settings.ui.layout }
+      layout: { ...resolved.settings.ui.layout },
+      typography: { ...resolved.settings.ui.typography }
     }
   });
 

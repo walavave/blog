@@ -379,6 +379,16 @@ HTML 示例：
 
 字体许可：SIL Open Font License 1.1（见 `public/fonts/OFL-LXGW-WenKai-Lite.txt` 与 `public/fonts/OFL-NotoSerifSC.txt`）。
 
+### 配置排版字体
+
+在开发模式下打开 Theme Console（`/admin/theme/` →「排版字体」），可分别设置正文、文案、等宽和品牌字体。保存后在下次构建时生效；品牌字体用于侧栏站点名和引言。
+
+字体卡片显示预览和来源信息。选项包括系统字体、自托管字体，以及在构建时下载并自托管的在线字体。页面加载字体时不会访问第三方字体服务。如需添加内置选项以外的字体，可在 `src/lib/fonts/registry.ts` 中注册。
+
+三类字体的来源、体积差异和自定义字体配置步骤，见 [Theme Console 配置指南 →「排版字体」](https://astro.whono.me/archive/theme-console-guide/)。
+
+运行 `npm run check:font-charset` 可检查字符集和字体子集是否与站点内容一致；检查失败时，按提示运行 `npm run font:build` 重新生成。
+
 
 ## RSS
 

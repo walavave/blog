@@ -124,6 +124,7 @@
   --font-readable: "Noto Serif SC", ui-serif, Georgia, "Times New Roman", "Songti SC", serif;
   --font-copy: "LXGW WenKai Lite", "Kaiti SC", "STKaiti", serif;
   --font-mono: "Sarasa Mono SC", "Noto Sans Mono CJK SC", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-brand: Georgia, serif;
   --max: 900px;
   --sidebar: 320px;
   --layout-shell-max-inline-size: 1100px;

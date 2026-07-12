@@ -4,7 +4,10 @@ import type {
   SidebarNavId,
   SiteSocialIconKey,
   SiteSocialPresetId,
-  ThemeSettingsEditablePayload
+  ThemeFontId,
+  ThemeSettingsEditablePayload,
+  TypographyRole,
+  TypographySettings
 } from '@/lib/theme-settings';
 import { normalizeHeroImageSrc as normalizeHeroImageSrcValue } from '@/utils/format';
 import {
@@ -18,9 +21,11 @@ import {
   ADMIN_OVERVIEW_HIDDEN_MESSAGE_DEFAULT,
   ADMIN_SIDEBAR_DIVIDER_DEFAULT,
   ADMIN_SOCIAL_PRESET_ORDER_DEFAULT,
+  ADMIN_TYPOGRAPHY_DEFAULT,
   canonicalizeAdminThemeSettings,
   isAdminHomeIntroLinkKey,
   isAdminNavId,
+  isAdminTypographyFontId,
   normalizeAdminSocialIconKey
 } from '@/lib/admin-console/theme-shared';
 
@@ -98,6 +103,10 @@ type FormCodecContext = {
   inputSidebarDividerDefault: HTMLInputElement;
   inputSidebarDividerSubtle: HTMLInputElement;
   inputSidebarDividerNone: HTMLInputElement;
+  inputTypographyReadable: HTMLElement;
+  inputTypographyCopy: HTMLElement;
+  inputTypographyMono: HTMLElement;
+  inputTypographyBrand: HTMLElement;
 };
 
 const normalizeMultiline = (value: string): string => value.replace(/\r\n/g, '\n');
@@ -204,7 +213,11 @@ export const createFormCodec = ({
   sidebarAdminEntryRowEl,
   inputSidebarDividerDefault,
   inputSidebarDividerSubtle,
-  inputSidebarDividerNone
+  inputSidebarDividerNone,
+  inputTypographyReadable,
+  inputTypographyCopy,
+  inputTypographyMono,
+  inputTypographyBrand
 }: FormCodecContext) => {
   const defaultHomeIntroLinks = [...ADMIN_HOME_INTRO_LINK_DEFAULT] as HomeIntroLinkKey[];
   const defaultPrimaryHomeIntroLink: HomeIntroLinkKey = ADMIN_HOME_INTRO_LINK_DEFAULT[0];
@@ -359,6 +372,30 @@ export const createFormCodec = ({
     inputSidebarDividerNone.checked = value === 'none';
   };
 
+  const typographyGroups: Record<TypographyRole, HTMLElement> = {
+    readable: inputTypographyReadable,
+    copy: inputTypographyCopy,
+    mono: inputTypographyMono,
+    brand: inputTypographyBrand
+  };
+
+  const getCheckedTypographyRadio = (role: TypographyRole): HTMLInputElement | null =>
+    query<HTMLInputElement>(typographyGroups[role], 'input[type="radio"]:checked');
+
+  const getSelectedTypographyFontId = (role: TypographyRole): ThemeFontId => {
+    const rawValue = getCheckedTypographyRadio(role)?.value.trim() ?? '';
+    return isAdminTypographyFontId(role, rawValue) ? rawValue : ADMIN_TYPOGRAPHY_DEFAULT[role];
+  };
+
+  const applyTypographySettings = (typography: TypographySettings | undefined): void => {
+    (Object.keys(typographyGroups) as TypographyRole[]).forEach((role) => {
+      const rawValue = typography?.[role] ?? '';
+      const nextValue = isAdminTypographyFontId(role, rawValue) ? rawValue : ADMIN_TYPOGRAPHY_DEFAULT[role];
+      const radio = query<HTMLInputElement>(typographyGroups[role], `input[type="radio"][value="${nextValue}"]`);
+      if (radio) radio.checked = true;
+    });
+  };
+
   const getFooterPreviewText = (): string => {
     const startYear = parseInteger(inputSiteFooterStartYear.value);
     const showCurrentYear = Boolean(inputSiteFooterShowCurrentYear.checked);
@@ -511,6 +548,12 @@ export const createFormCodec = ({
         },
         layout: {
           sidebarDivider: getSelectedSidebarDividerVariant()
+        },
+        typography: {
+          readable: getSelectedTypographyFontId('readable'),
+          copy: getSelectedTypographyFontId('copy'),
+          mono: getSelectedTypographyFontId('mono'),
+          brand: getSelectedTypographyFontId('brand')
         }
       }
     };
@@ -584,6 +627,7 @@ export const createFormCodec = ({
     inputArticleMetaShowWordCount.checked = settings.ui?.articleMeta?.showWordCount !== false;
     inputArticleMetaShowReadingTime.checked = settings.ui?.articleMeta?.showReadingTime !== false;
     applySidebarDividerVariant(settings.ui?.layout?.sidebarDivider || ADMIN_SIDEBAR_DIVIDER_DEFAULT);
+    applyTypographySettings(settings.ui?.typography);
     refreshFooterPreview();
     refreshArticleMetaPreview();
 

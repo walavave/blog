@@ -9,6 +9,7 @@ The format is based on Keep a Changelog, and this project aims to follow Semanti
 
 ### Added
 - 主题切换新增「跟随系统」模式：站点外观可随系统浅色/深色设置自动切换（[PR #35](https://github.com/cxro/astro-whono/pull/35)，by [@ZephyrCICD](https://github.com/ZephyrCICD)）。
+- Theme Console 新增「排版字体」配置：正文、文案、等宽、品牌四类字体可独立选择，支持系统字体栈与自托管字体（含构建期下载的中文子集），页面不请求任何第三方字体服务
 
 ### Fixed
 - 修复本地后台编辑 figure 图片块时，含转义文本或富文本说明的图片可能被错误回显，以及本地图片缺失检查可能漏检的问题。

@@ -22,7 +22,7 @@
 
 .about-body {
   margin: 30px 0 0;
-  font-family: "LXGW WenKai Lite", "Kaiti SC", "STKaiti", serif;
+  font-family: var(--font-copy);
   font-size: 16px;
   line-height: 1.7;
 }
@@ -52,7 +52,7 @@
 .about-body h2,
 .about-body h3 {
   margin: 38px 0 10px;
-  font-family: "Noto Serif SC", ui-serif, Georgia, "Times New Roman", "Songti SC", serif;
+  font-family: var(--font-readable);
 }
 
 .about-body h2 {
@@ -115,7 +115,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  font-family: "LXGW WenKai Lite", "Kaiti SC", "STKaiti", serif;
+  font-family: var(--font-copy);
 }
 
 .friend-card__avatar img {
@@ -139,14 +139,14 @@
   font-size: 16px;
   line-height: 1.35;
   font-weight: 600;
-  font-family: "Noto Serif SC", ui-serif, Georgia, "Times New Roman", "Songti SC", serif;
+  font-family: var(--font-readable);
 }
 
 .friend-card__description {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.6;
-  font-family: "LXGW WenKai Lite", "Kaiti SC", "STKaiti", serif;
+  font-family: var(--font-copy);
 }
 
 .about-site-info {
@@ -257,7 +257,7 @@
   color: var(--muted);
   font-size: 14px;
   line-height: 1.6;
-  font-family: "LXGW WenKai Lite", "Kaiti SC", "STKaiti", serif;
+  font-family: var(--font-copy);
   overflow-wrap: anywhere;
 }
 
@@ -295,7 +295,7 @@
   font-size: 16px;
   line-height: 1.75;
   font-weight: 400;
-  font-family: "LXGW WenKai Lite", "Kaiti SC", "STKaiti", serif;
+  font-family: var(--font-copy);
 }
 
 .qa-icon {
@@ -321,7 +321,7 @@
   color: var(--muted);
   font-size: 16px;
   line-height: 1.75;
-  font-family: "LXGW WenKai Lite", "Kaiti SC", "STKaiti", serif;
+  font-family: var(--font-copy);
 }
 
 .qa-answer::before {
@@ -377,7 +377,7 @@
   color: var(--text);
   font-size: 16px;
   line-height: 1.75;
-  font-family: "LXGW WenKai Lite", "Kaiti SC", "STKaiti", serif;
+  font-family: var(--font-copy);
 }
 
 .contact-link-head {

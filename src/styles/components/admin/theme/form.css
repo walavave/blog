@@ -545,6 +545,101 @@
   box-shadow: var(--admin-focus-shadow);
 }
 
+/* 排版字体：radio 卡片组（固定 4 列保证各 role 组卡片纵向对齐，超出自动换行） */
+.admin-font-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-font-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
+.admin-font-card input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+}
+
+.admin-font-card__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-field-soft-border);
+  border-radius: var(--admin-control-radius);
+  background: var(--admin-field-soft-bg);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.admin-font-card:hover .admin-font-card__body {
+  border-color: var(--admin-field-soft-hover-border);
+  background: var(--admin-field-soft-hover-bg);
+}
+
+.admin-font-card input:checked + .admin-font-card__body {
+  border-color: var(--border);
+  background: linear-gradient(180deg, var(--code-content-bg) 0%, var(--panel) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 1px 2px -1px var(--overlay-20);
+}
+
+.admin-font-card input:focus-visible + .admin-font-card__body {
+  border-color: var(--admin-focus-border);
+  box-shadow: var(--admin-focus-shadow);
+}
+
+/* 卡片内容默认浅灰、选中恢复正文色：详情行已移除，选中态由卡片自身（边框/底色/文字色）表达。 */
+.admin-font-card__preview {
+  color: var(--muted);
+  font-size: 19px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.admin-font-card__name {
+  color: var(--muted);
+  font-size: var(--admin-text-sm);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 来源说明：纯文字弱化展示，与上方字体名左对齐。 */
+.admin-font-card__badge {
+  max-width: 100%;
+  color: var(--faint);
+  font-size: var(--admin-text-2xs);
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-font-card input:checked + .admin-font-card__body .admin-font-card__preview,
+.admin-font-card input:checked + .admin-font-card__body .admin-font-card__name {
+  color: var(--text);
+}
+
+@media (max-width: 900px) {
+  .admin-font-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .admin-label__main code {
   font-size: 12px;
 }

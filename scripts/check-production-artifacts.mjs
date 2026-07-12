@@ -97,6 +97,14 @@ const assertNoEmojiPickerAssets = () => {
 const PREV_LINK_PATTERN = /<a class="prev-next__link prev-next__link--prev"[^>]*rel="prev">/;
 const NEXT_LINK_PATTERN = /<a class="prev-next__link prev-next__link--next"[^>]*rel="next">/;
 
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const EXTERNAL_MODULE_SCRIPT_PATTERN = new RegExp(
+  `<script type="module" src="(${escapeRegExp(basePrefix)}/_astro/[^"]+)"></script>`,
+  'g'
+);
+const getExternalModuleScriptSrcs = (html) =>
+  Array.from(html.matchAll(EXTERNAL_MODULE_SCRIPT_PATTERN), (match) => match[1]);
+
 export const runProductionArtifactCheck = async (options = {}) => {
   const siteUrl = options.siteUrl ?? resolveRequiredSiteUrl();
 
@@ -181,6 +189,12 @@ export const runProductionArtifactCheck = async (options = {}) => {
   expect(!/\.admin-/.test(aboutHtml), 'Public about page still contains admin CSS rules');
   expect(!/--admin-status-/.test(aboutHtml), 'Public about page still contains admin CSS tokens');
 
+  const indexHtml = readText('dist/index.html');
+  // 公开首页外链的 _astro 模块脚本 = 全站共享 chunk 基线（如 BaseLayout 公共脚本
+  // 超过 vite assetsInlineLimit 后会从逐页内联翻转为外链共享 chunk）。
+  // admin 只读壳允许共享这些公共 chunk，但不得外链任何 admin 专属脚本。
+  const publicExternalModuleScripts = new Set(getExternalModuleScriptSrcs(indexHtml));
+
   const adminHtml = readText('dist/admin/index.html');
   const adminContentHtml = readText('dist/admin/content/index.html');
   const adminImageHtml = readText('dist/admin/images/index.html');
@@ -226,10 +240,12 @@ export const runProductionArtifactCheck = async (options = {}) => {
   expect(!adminHtml.includes('id="admin-images-bootstrap"'), 'dist/admin/index.html should not emit images bootstrap payload');
   expect(!adminHtml.includes('data-admin-data-root'), 'dist/admin/index.html should not emit data console payload');
   expect(!adminHtml.includes('id="admin-data-bootstrap"'), 'dist/admin/index.html should not emit data bootstrap payload');
-  expect(
-    !/<script type="module" src="\/_astro\/[^"]+"><\/script>/.test(adminHtml),
-    'dist/admin/index.html still links an external _astro module script'
-  );
+  for (const scriptSrc of getExternalModuleScriptSrcs(adminHtml)) {
+    expect(
+      publicExternalModuleScripts.has(scriptSrc),
+      `dist/admin/index.html links an admin-only external module script (not shared with dist/index.html): ${scriptSrc}`
+    );
+  }
 
   for (const [filePath, html, heading] of readonlyAdminHtmlChecks) {
     expect(html.includes(heading), `${filePath} is missing the expected ${heading} route heading`);
@@ -241,14 +257,15 @@ export const runProductionArtifactCheck = async (options = {}) => {
     expect(!html.includes('data-admin-images-root'), `${filePath} should not emit images console payload`);
     expect(!html.includes('id="admin-images-bootstrap"'), `${filePath} should not emit images bootstrap payload`);
     expect(!/index@_@astro\.[^"]+\.css/.test(html), `${filePath} still links admin-only CSS`);
-    expect(
-      !/<script type="module" src="\/_astro\/[^"]+"><\/script>/.test(html),
-      `${filePath} still links an external _astro module script`
-    );
+    for (const scriptSrc of getExternalModuleScriptSrcs(html)) {
+      expect(
+        publicExternalModuleScripts.has(scriptSrc),
+        `${filePath} links an admin-only external module script (not shared with dist/index.html): ${scriptSrc}`
+      );
+    }
   }
   assertNoDevAdminUiPreferenceAssets();
 
-  const indexHtml = readText('dist/index.html');
   expect(
     /<h1 class="sr-only">[^<]+<\/h1>/.test(indexHtml),
     'Homepage hidden H1 is missing from dist/index.html'
@@ -256,6 +273,25 @@ export const runProductionArtifactCheck = async (options = {}) => {
   assertNoDevAdminUiPreferenceChrome('dist/index.html', indexHtml);
   expect(!/\.admin-/.test(indexHtml), 'Homepage still contains admin CSS rules');
   expect(!/--admin-status-/.test(indexHtml), 'Homepage still contains admin CSS tokens');
+
+  // typography 覆盖（<html style> 内联属性）引用的每个 --font-* 变量必须在同页有定义
+  // （定义由 <Font> 组件的内联 <style> 提供）；缺定义 = 构建期字体下载失败被静默降级
+  // （如 provider 不可达），在这里显式失败。默认态 <html> 无 style 属性，本断言空转；
+  // 页面样式对 --font-readable/copy/mono 角色 token 的引用由外链 global.css 的 :root
+  // 提供定义，不在本断言范围内。
+  const htmlStyleMatch = indexHtml.match(/<html[^>]+style="([^"]*)"/);
+  const referencedFontVariables = htmlStyleMatch
+    ? Array.from(
+        htmlStyleMatch[1].matchAll(/var\((--font-[a-z0-9-]+)\)/g),
+        (match) => match[1]
+      )
+    : [];
+  for (const variableName of new Set(referencedFontVariables)) {
+    expect(
+      indexHtml.includes(`${variableName}:`),
+      `dist/index.html references ${variableName} but never defines it — the font download likely failed at build time (unreachable provider?). Switch the registry entry to provider 'local' or build on a network that can reach the provider.`
+    );
+  }
 
   const pageSettings = existsSync('src/data/settings/page.json')
     ? JSON.parse(readFileSync('src/data/settings/page.json', 'utf8'))

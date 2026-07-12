@@ -10,6 +10,8 @@ import {
   ADMIN_SIDEBAR_NAV_MODE_STORAGE_KEY
 } from '../lib/admin-console/ui-prefs-keys';
 import { getThemeSettings, type SidebarNavId } from '../lib/theme-settings';
+import { getSelectedAstroApiFonts, getTypographyStyleOverride } from '../lib/fonts/registry';
+import { Font } from 'astro:assets';
 
 const {
   title,
@@ -44,6 +46,24 @@ const footerShowCurrentYear = settings.site.footer.showCurrentYear;
 const footerCopyright = settings.site.footer.copyright;
 const showCodeLineNumbers = settings.ui.codeBlock.showLineNumbers;
 const sidebarDividerVariant = settings.ui.layout.sidebarDivider;
+// 非默认字体角色以 <html> 内联自定义属性覆盖 global.css 的 :root tokens；默认态不输出，
+// 保持 global.css 为唯一默认来源（deferGlobalStyles 异步加载路径下行内属性也不受加载顺序影响）。
+const typographyStyleOverride = getTypographyStyleOverride(settings.ui.typography);
+// 选中 astro-fonts-api 字体时渲染 <Font>（注入构建期生成的 @font-face 与 cssVariable）；默认态为空数组。
+// 只渲染 config 期实际注册的 cssVariable（快照来自 vite.define）：dev 下热改 ui.json 的未注册
+// 条目会让 <Font> 抛 FontFamilyNotFound 崩掉全站，此处跳过并提示重启。
+const registeredFontCssVariables = new Set(
+  String(import.meta.env.ASTRO_WHONO_FONT_CSS_VARIABLES ?? '').split(',').filter(Boolean)
+);
+const selectedApiFonts = getSelectedAstroApiFonts(settings.ui.typography);
+const typographyApiFonts = selectedApiFonts.filter((font) =>
+  registeredFontCssVariables.has(`--font-${font.id}`)
+);
+if (import.meta.env.DEV && typographyApiFonts.length !== selectedApiFonts.length) {
+  console.warn(
+    '[fonts] ui.typography 选中的字体未注册于本次启动的 fonts 配置，已跳过 <Font> 渲染；重启 dev server 生效。'
+  );
+}
 const canonical = (hasSiteUrl && Astro.site)
   ? new URL(Astro.url.pathname, Astro.site).toString()
   : null;
@@ -75,7 +95,7 @@ const adminUiPrefsScriptHref = isDevAdminPage
 ---
 
 <!doctype html>
-<html lang={htmlLang}>
+<html lang={htmlLang} style={typographyStyleOverride ?? undefined}>
   <head>
     <script is:inline>
       (() => {
@@ -178,6 +198,7 @@ const adminUiPrefsScriptHref = isDevAdminPage
       )
     }
     {devUiPrefsStylesHref ? <link rel="stylesheet" href={devUiPrefsStylesHref} /> : null}
+    {typographyApiFonts.map((font) => <Font cssVariable={`--font-${font.id}`} />)}
     <slot name="head" />
   </head>
   <body

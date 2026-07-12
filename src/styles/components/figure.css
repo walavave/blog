@@ -92,7 +92,7 @@
   max-width: var(--figure-caption-max-width);
   margin-left: var(--figure-media-margin-left);
   margin-right: var(--figure-media-margin-right);
-  font-family: "LXGW WenKai Lite","Kaiti SC","STKaiti",serif;
+  font-family: var(--font-copy);
   color: var(--muted);
 }
 

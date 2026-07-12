@@ -116,7 +116,11 @@ if (!root) {
       sidebarAdminEntryRowEl: controls.sidebarAdminEntryRowEl,
       inputSidebarDividerDefault: controls.inputSidebarDividerDefault,
       inputSidebarDividerSubtle: controls.inputSidebarDividerSubtle,
-      inputSidebarDividerNone: controls.inputSidebarDividerNone
+      inputSidebarDividerNone: controls.inputSidebarDividerNone,
+      inputTypographyReadable: controls.inputTypographyReadable,
+      inputTypographyCopy: controls.inputTypographyCopy,
+      inputTypographyMono: controls.inputTypographyMono,
+      inputTypographyBrand: controls.inputTypographyBrand
     });
 
     const getNavFieldTarget = (
@@ -179,6 +183,10 @@ if (!root) {
       inputPageBitsAuthorName: controls.inputPageBitsAuthorName,
       inputPageBitsAuthorAvatar: controls.inputPageBitsAuthorAvatar,
       inputSidebarDividerDefault: controls.inputSidebarDividerDefault,
+      inputTypographyReadable: controls.inputTypographyReadable,
+      inputTypographyCopy: controls.inputTypographyCopy,
+      inputTypographyMono: controls.inputTypographyMono,
+      inputTypographyBrand: controls.inputTypographyBrand,
       getPresetFieldTarget: socialLinks.getPresetFieldTarget,
       getCustomFieldTarget: socialLinks.getCustomFieldTarget,
       getCustomVisibilityTarget: socialLinks.getCustomVisibilityTarget,

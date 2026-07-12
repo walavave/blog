@@ -376,6 +376,16 @@ Source files (not tracked in repository):
 
 Font license: SIL Open Font License 1.1 (see `public/fonts/OFL-LXGW-WenKai-Lite.txt` and `public/fonts/OFL-NotoSerifSC.txt`).
 
+### Typography settings
+
+In development, open the Theme Console (`/admin/theme/` → "Typography") to configure the body text, copy, monospace, and brand fonts independently. Changes apply on the next build; the brand font is used for the sidebar site title and quote.
+
+Font cards show previews and source information. Options include system fonts, self-hosted fonts, and online fonts downloaded and self-hosted at build time. Browsers do not contact third-party font services when loading pages. To add a font beyond the built-in options, register it in `src/lib/fonts/registry.ts`.
+
+For source details, size trade-offs, and custom font setup, see the [Theme Console guide → "Typography"](https://astro.whono.me/archive/theme-console-guide/).
+
+Run `npm run check:font-charset` to verify that the charset and font subsets match the site content. If it fails, follow the prompt to run `npm run font:build`.
+
 
 ## RSS
 

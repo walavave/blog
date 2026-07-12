@@ -12,6 +12,7 @@ The format is based on Keep a Changelog, and this project aims to follow Semanti
 
 ### Fixed
 - 修复本地后台编辑 figure 图片块时，含转义文本或富文本说明的图片可能被错误回显，以及本地图片缺失检查可能漏检的问题。
+- 修复子路径部署时，`/robots.txt` 中的 `Sitemap` 链接遗漏部署路径、指向错误地址的问题。
 
 
 ## [0.5.0] - 2026-06-16

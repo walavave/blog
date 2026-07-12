@@ -8,6 +8,17 @@ import { site, hasSiteUrl } from './site.config.mjs';
 const isProductionBuild = process.env.NODE_ENV === 'production';
 const SITEMAP_ROUTE_ROOTS = new Set(['about', 'admin', 'archive', 'bits', 'checks', 'essay', 'memo']);
 const rawDeploymentBase = process.env.ASTRO_WHONO_BASE_PATH ?? '/';
+const trimmedDeploymentBase = String(rawDeploymentBase).trim();
+
+// Git Bash 的 MSYS 路径转换会把 "/blog" 这类值改写成 "C:/Program Files/Git/blog"，
+// 导致深处的 "Missing parameter" 预渲染错误；在配置期直接报可读错误。
+// 规避：命令前加 MSYS_NO_PATHCONV=1（或 MSYS2_ENV_CONV_EXCL=ASTRO_WHONO_BASE_PATH）。
+if (/[:\s]/.test(trimmedDeploymentBase)) {
+  throw new Error(
+    `Invalid ASTRO_WHONO_BASE_PATH "${rawDeploymentBase}": looks like a filesystem path, not a URL base. ` +
+      'If running under Git Bash, prefix the command with MSYS_NO_PATHCONV=1 to stop MSYS path conversion.',
+  );
+}
 
 const normalizeDeploymentBase = (value) => {
   const segment = String(value ?? '').trim().replace(/^\/+|\/+$/g, '');

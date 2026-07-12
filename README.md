@@ -115,11 +115,9 @@ npm run audit:prod
 - 本项目已提供 `.nvmrc`，Cloudflare Pages 会自动读取。
 - 如需手动指定，可在 Pages 的环境变量里设置：`NODE_VERSION=22.22.0`
 
-**环境变量（强烈推荐：生产环境一定要设）**
+**环境变量（生产环境应设置）**
 - 在 Pages 项目 → Settings → Environment variables 添加：`SITE_URL=https://你的域名`（例如 `https://astro.whono.me`，不要以 `/` 结尾）
-
-**为什么要设 `SITE_URL`？**
-- Astro 会用它生成 canonical、Open Graph 的 `og:url`、RSS 链接、sitemap 等“必须是完整网址”的内容；不设置时，站点也能部署，但这些链接可能变成相对地址或占位域名，影响分享预览和搜索引擎收录。
+- `SITE_URL` 用于生成 canonical、Open Graph 的 `og:url`、RSS 链接与 sitemap 等绝对链接；未设置时相关链接会退化为占位域名，影响分享预览与搜索收录。
 
 **关于 sitemap / robots**
 - 只有设置了 `SITE_URL`，才会生成 sitemap，并且 `/robots.txt` 才会输出 `Sitemap:` 行（避免指向错误域名）。

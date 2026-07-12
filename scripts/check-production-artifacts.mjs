@@ -16,6 +16,14 @@ import {
 
 const normalizeSiteUrl = (value) => value.trim().replace(/\/+$/, '');
 
+/* 与 astro.config.mjs 的 normalizeDeploymentBase 同语义；根路径为空串，子路径形如 '/blog'。
+   dist 目录结构不随 base 嵌套，base 只影响产物内的 URL。 */
+const basePathSegment = String(process.env.ASTRO_WHONO_BASE_PATH ?? '').trim().replace(/^\/+|\/+$/g, '');
+const basePrefix = basePathSegment ? `/${basePathSegment}` : '';
+
+const stripBasePrefix = (pathname) =>
+  basePrefix && pathname.startsWith(`${basePrefix}/`) ? pathname.slice(basePrefix.length) : pathname;
+
 export const resolveRequiredSiteUrl = () => {
   const siteUrl = normalizeSiteUrl(process.env.SITE_URL ?? '');
   expect(siteUrl.length > 0, 'SITE_URL is required for production artifact verification');
@@ -129,13 +137,13 @@ export const runProductionArtifactCheck = async (options = {}) => {
 
   const robotsTxt = readText('dist/robots.txt');
   expect(
-    robotsTxt.includes(`Sitemap: ${siteUrl}/sitemap-index.xml`),
+    robotsTxt.includes(`Sitemap: ${siteUrl}${basePrefix}/sitemap-index.xml`),
     'robots.txt is missing the expected Sitemap line'
   );
 
   const sitemapXml = readText('dist/sitemap-0.xml');
   expect(
-    sitemapXml.includes(`<loc>${siteUrl}/about/</loc>`),
+    sitemapXml.includes(`<loc>${siteUrl}${basePrefix}/about/</loc>`),
     'Sitemap is missing the expected /about/ location'
   );
   expect(!sitemapXml.includes('/admin/'), 'Admin route leaked into sitemap');
@@ -145,7 +153,7 @@ export const runProductionArtifactCheck = async (options = {}) => {
   expect(!sitemapXml.includes('/admin/checks/'), 'Admin checks route leaked into sitemap');
   expect(!sitemapXml.includes('/admin/data/'), 'Admin data route leaked into sitemap');
   expect(
-    !sitemapXml.includes(`${siteUrl}/bits/draft-dialog/`),
+    !sitemapXml.includes(`${siteUrl}${basePrefix}/bits/draft-dialog/`),
     'Bits draft partial route leaked into sitemap'
   );
 
@@ -153,18 +161,20 @@ export const runProductionArtifactCheck = async (options = {}) => {
     sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g),
     (match) => match[1].trim()
   ).filter(Boolean);
-  const leakedEssayDetail = sitemapLocs.find((loc) => /^\/essay\/[^/]+\/$/.test(new URL(loc).pathname));
+  const leakedEssayDetail = sitemapLocs.find((loc) =>
+    /^\/essay\/[^/]+\/$/.test(stripBasePrefix(new URL(loc).pathname))
+  );
   expect(!leakedEssayDetail, `Essay compatibility redirect leaked into sitemap: ${leakedEssayDetail}`);
 
   assertNoEmojiPickerAssets();
 
   const aboutHtml = readText('dist/about/index.html');
   expect(
-    aboutHtml.includes(`<link rel="canonical" href="${siteUrl}/about/"`),
+    aboutHtml.includes(`<link rel="canonical" href="${siteUrl}${basePrefix}/about/"`),
     'About page canonical no longer matches SITE_URL'
   );
   expect(
-    aboutHtml.includes(`<meta property="og:url" content="${siteUrl}/about/"`),
+    aboutHtml.includes(`<meta property="og:url" content="${siteUrl}${basePrefix}/about/"`),
     'About page og:url no longer matches SITE_URL'
   );
   assertNoDevAdminUiPreferenceChrome('dist/about/index.html', aboutHtml);
@@ -288,7 +298,7 @@ export const runProductionArtifactCheck = async (options = {}) => {
 
   const normalizeArchiveDetailPath = (href) => {
     const url = new URL(href);
-    const normalizedPath = url.pathname.replace(/\/+$/, '').replace(/^\/+/, '');
+    const normalizedPath = stripBasePrefix(url.pathname).replace(/\/+$/, '').replace(/^\/+/, '');
     expect(
       normalizedPath.startsWith('archive/') && normalizedPath.split('/').length >= 2,
       `Archive RSS item did not resolve to an /archive/{slug}/ detail page: ${href}`
@@ -310,7 +320,7 @@ export const runProductionArtifactCheck = async (options = {}) => {
 
   const sampleArchiveLink = archiveRssLinks[0];
   expect(
-    sampleArchiveLink.startsWith(`${siteUrl}/archive/`),
+    sampleArchiveLink.startsWith(`${siteUrl}${basePrefix}/archive/`),
     `Archive RSS item link is not absolute or not under /archive/: ${sampleArchiveLink}`
   );
   expect(

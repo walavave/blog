@@ -114,11 +114,9 @@ npm run audit:prod
 - This project includes `.nvmrc`, and Cloudflare Pages reads it automatically.
 - If you need to set it manually, add `NODE_VERSION=22.22.0` in environment variables.
 
-**Environment variables (strongly recommended for production)**
+**Environment variables (set for production)**
 - In Pages project -> Settings -> Environment variables, add: `SITE_URL=https://your-domain` (for example `https://astro.whono.me`, without a trailing `/`).
-
-**Why set `SITE_URL`?**
-- Astro uses it to generate canonical, Open Graph `og:url`, RSS links, sitemap, and other fields that require absolute URLs. Without `SITE_URL`, deployment still works, but these links may fall back to relative paths or placeholder domains, which can hurt share previews and search indexing.
+- `SITE_URL` is used to generate absolute links for canonical, Open Graph `og:url`, RSS, and sitemap; without it these links fall back to a placeholder domain, hurting share previews and search indexing.
 
 **About sitemap / robots**
 - `sitemap` is generated only when `SITE_URL` is set, and `/robots.txt` includes a `Sitemap:` line only in that case (to avoid pointing to the wrong domain).

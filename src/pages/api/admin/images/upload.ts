@@ -36,6 +36,13 @@ const getRequiredText = (formData: FormData, key: string): string => {
   return typeof value === 'string' ? value.trim() : '';
 };
 
+const getOptionalText = (formData: FormData, key: string): string | undefined => {
+  const value = formData.get(key);
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed || undefined;
+};
+
 const getRequiredFile = (formData: FormData, key: string): File | null => {
   const value = formData.get(key);
   return value instanceof File ? value : null;
@@ -82,6 +89,7 @@ export const POST: APIRoute = async ({ request, url }) => {
 
   const collection = getRequiredText(formData, 'collection');
   const entryId = getRequiredText(formData, 'entryId');
+  const fileName = getOptionalText(formData, 'fileName');
   const file = getRequiredFile(formData, 'image');
   const errors: string[] = [];
 
@@ -104,7 +112,11 @@ export const POST: APIRoute = async ({ request, url }) => {
 
   return withAdminImageUploadLock(async () => {
     try {
-      const result = await uploaders[collection]({ entryId, file });
+      const result = await uploaders[collection]({
+        entryId,
+        file,
+        ...(fileName ? { fileName } : {})
+      });
       return createJsonResponse(200, {
         ok: true,
         result

@@ -7,7 +7,7 @@ import {
   ADMIN_HOME_INTRO_LINK_DEFAULT,
   ADMIN_HOME_INTRO_LINK_OPTIONS
 } from '../../lib/admin-console/theme-shared';
-import defaultHero from '../../assets/hero.png';
+import defaultHero from '../../assets/hero.jpg';
 
 interface Props {
   homeIntroMaxLength: number;
@@ -50,7 +50,7 @@ const { homeIntroMaxLength } = Astro.props;
                 type="text"
                 inputmode="url"
                 spellcheck="false"
-                placeholder="当前使用：src/assets/hero.png"
+                placeholder="当前使用：src/assets/hero.jpg"
                 aria-label="Hero 图片地址"
                 aria-describedby="home-hero-image-src-tip"
               />

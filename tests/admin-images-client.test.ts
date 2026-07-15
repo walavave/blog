@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchList } from '../src/scripts/admin-images/data';
+import { deleteByPath, fetchList } from '../src/scripts/admin-images/data';
 import {
   parseAdminImageListResponse,
   parseAdminImageMetaResponse
@@ -144,6 +144,40 @@ describe('admin-images/data', () => {
 
     await expect(fetchList('/api/admin/images/list', createState({ scope: 'recent' }), 20))
       .rejects.toThrow('图片列表响应格式无效');
+  });
+
+  it('posts image delete requests and returns trash metadata', async () => {
+    const requested: Array<{ url: string; init: RequestInit | undefined }> = [];
+    const fetchMock = vi.fn(async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+      requested.push({ url: String(input), init });
+      return Response.json({
+        ok: true,
+        result: {
+          deleted: true,
+          relativePath: 'public/images/archive/cover.png',
+          trashedPath: '.trash/images/20260715-101010-001/public/images/archive/cover.png'
+        }
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await deleteByPath('/api/admin/images/delete', 'public/images/archive/cover.png');
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(requested[0]?.url).toBe('/api/admin/images/delete');
+    expect(requested[0]?.init?.method).toBe('POST');
+    expect(requested[0]?.init?.body).toBe(JSON.stringify({ path: 'public/images/archive/cover.png' }));
+    expect(result.trashedPath).toContain('.trash/images/');
+  });
+
+  it('surfaces image delete api errors instead of hiding them', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      ok: false,
+      errors: ['图片文件不存在']
+    })));
+
+    await expect(deleteByPath('/api/admin/images/delete', 'public/images/missing.png'))
+      .rejects.toThrow('图片文件不存在');
   });
 
   it('rejects malformed shared picker list and metadata responses', () => {

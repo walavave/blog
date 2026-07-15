@@ -71,6 +71,7 @@ let {
 }: Props = $props();
 
 let rowMeta = $state<RowMetaState[]>([]);
+let uploadFileNames = $state<string[]>([]);
 let pendingUploadCount = 0;
 let activeRowIndex = $state<number | null>(null);
 let editingDetail = $state<ImageDetailEditTarget | null>(null);
@@ -137,6 +138,14 @@ const getDimensionSummary = (row: BitsImageRowDraft): string => {
   return `${width || '自动'} × ${height || '自动'}`;
 };
 
+const getSuggestedUploadFileName = (value: string): string =>
+  value
+    .trim()
+    .replace(/\\/g, '/')
+    .split('/')
+    .pop()
+    ?.trim() ?? '';
+
 const isEditingDetail = (index: number, field: ImageDetailEditTarget['field']): boolean =>
   editingDetail?.index === index && editingDetail.field === field;
 
@@ -167,6 +176,11 @@ const setRowMeta = (index: number, patch: Partial<RowMetaState>) => {
 const syncRowMetaLength = () => {
   if (rowMeta.length === rows.length) return;
   rowMeta = rows.map((_, index) => rowMeta[index] ?? createRowMeta());
+};
+
+const syncUploadFileNameLength = () => {
+  if (uploadFileNames.length === rows.length) return;
+  uploadFileNames = rows.map((row, index) => uploadFileNames[index] ?? getSuggestedUploadFileName(row.src));
 };
 
 const clearMetaTimer = (index: number) => {
@@ -290,12 +304,14 @@ const removeRow = (index: number) => {
   if (rows.length <= 1) {
     rows = [createEmptyBitsImageRow()];
     rowMeta = [createRowMeta()];
+    uploadFileNames = [''];
     activeRowIndex = null;
     editingDetail = null;
   } else {
     const nextRows = rows.filter((_, currentIndex) => currentIndex !== index);
     rows = nextRows;
     rowMeta = rowMeta.filter((_, currentIndex) => currentIndex !== index);
+    uploadFileNames = uploadFileNames.filter((_, currentIndex) => currentIndex !== index);
     if (activeRowIndex !== null && activeRowIndex > index) {
       activeRowIndex -= 1;
     } else if (activeRowIndex === index) {
@@ -331,6 +347,7 @@ const openInsertRow = async () => {
   if (insertIndex === rows.length) {
     rows = [...rows, createEmptyBitsImageRow()];
     rowMeta = [...rowMeta, createRowMeta()];
+    uploadFileNames = [...uploadFileNames, ''];
   }
   activeRowIndex = insertIndex;
   await focusRowSourceInput(insertIndex);
@@ -418,7 +435,16 @@ const applyUploadedImage = (index: number, result: EditorImageUploadResult) => {
     loading: false
   });
   setPreview(index, getUploadPreviewSrc(result));
+  uploadFileNames = uploadFileNames.map((value, currentIndex) =>
+    currentIndex === index ? result.fileName : value
+  );
   onStatus('ok', `已上传图片：${result.src}`);
+};
+
+const handleUploadFileNameInput = (index: number, value: string) => {
+  uploadFileNames = uploadFileNames.map((currentValue, currentIndex) =>
+    currentIndex === index ? value : currentValue
+  );
 };
 
 const handleUploadInput = async (index: number, input: HTMLInputElement) => {
@@ -434,13 +460,19 @@ const handleUploadInput = async (index: number, input: HTMLInputElement) => {
   clearMetaTimer(index);
   const originalRow = rows[index];
   if (!originalRow) return;
+  const requestedFileName = uploadFileNames[index]?.trim() || file.name;
   const token = (rowMeta[index]?.token ?? 0) + 1;
   setPreview(index, null);
   setRowMeta(index, { token, loading: true, text: '正在上传图片' });
   updateUploadPending(true);
 
   try {
-    const upload = await uploadBitsEditorImage({ uploadEndpoint, entryId, file });
+    const upload = await uploadBitsEditorImage({
+      uploadEndpoint,
+      entryId,
+      file,
+      fileName: requestedFileName
+    });
     if (rows[index] !== originalRow || rowMeta[index]?.token !== token) {
       clearStaleUploadMeta(index, token);
       return;
@@ -478,11 +510,13 @@ const openPicker = (index: number) => {
 
 $effect(() => {
   syncRowMetaLength();
+  syncUploadFileNameLength();
   clampActiveRowIndex();
 });
 
 onMount(() => {
   syncRowMetaLength();
+  syncUploadFileNameLength();
   rows.forEach((row, index) => {
     if (row.src.trim()) void applyMeta(index);
   });
@@ -573,6 +607,7 @@ onMount(() => {
       {@const heightIssue = getImageIssue(index, 'height')}
       {@const meta = rowMeta[index] ?? createRowMeta()}
       {@const rowDisabled = disabled || meta.loading}
+      {@const uploadFileName = uploadFileNames[index] ?? ''}
       {@const showAltEditor = Boolean(altIssue) || isEditingDetail(index, 'alt')}
       {@const showDimensionEditor = Boolean(widthIssue || heightIssue) || isEditingDetail(index, 'dimensions')}
       {@const altDetailIsEmpty = !activeRow.alt.trim()}
@@ -642,6 +677,25 @@ onMount(() => {
               <AdminEditorIcon name="trash" size={14} strokeWidth={2} class="admin-icon" />
             </button>
           </div>
+        </div>
+
+        <div class="admin-field admin-content-image-row__field admin-content-image-row__field--upload-name">
+          <label class="admin-content-image-row__upload-label" for={`admin-bits-image-${index}-upload-name`}>
+            目标文件名
+          </label>
+          <input
+            id={`admin-bits-image-${index}-upload-name`}
+            class="admin-field__control admin-content-image-row__upload-input"
+            type="text"
+            value={uploadFileName}
+            spellcheck="false"
+            placeholder="bits-cover.webp"
+            disabled={rowDisabled}
+            oninput={(event) => handleUploadFileNameInput(index, event.currentTarget.value)}
+          />
+          <p class="admin-content-image-row__upload-hint">
+            上传栅格图默认转为 WebP；SVG 和 GIF 保持原格式。这里只影响下一次上传，不会改现有 `src`。
+          </p>
         </div>
 
         <div

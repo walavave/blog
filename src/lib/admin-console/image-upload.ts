@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import sharp from 'sharp';
 import {
   AdminContentEntryResolutionError,
   resolveAdminContentEntrySourcePath
@@ -32,6 +33,7 @@ export class AdminImageUploadError extends Error {
 }
 
 const SUPPORTED_IMAGE_EXTENSIONS = new Set(['.avif', '.gif', '.jpg', '.jpeg', '.png', '.svg', '.webp']);
+const WEBP_CONVERTIBLE_IMAGE_EXTENSIONS = new Set(['.avif', '.jpg', '.jpeg', '.png', '.webp']);
 const ADMIN_IMAGE_UPLOAD_MAX_BYTES = 12 * 1024 * 1024;
 
 const getProjectRoot = (): string => process.env.ASTRO_WHONO_INTERNAL_TEST_PROJECT_ROOT?.trim() || process.cwd();
@@ -51,14 +53,25 @@ const normalizeFileBaseName = (value: string): string => {
   return normalized || 'image';
 };
 
-const getSafeImageFileName = (fileName: string): string => {
-  const extension = path.extname(fileName).toLowerCase();
+const resolveUploadFileBaseName = (
+  originalFileName: string,
+  requestedFileName?: string
+): { baseName: string; originalExtension: string } => {
+  const extension = path.extname(originalFileName).toLowerCase();
   if (!SUPPORTED_IMAGE_EXTENSIONS.has(extension)) {
     throw new AdminImageUploadError('仅支持 avif / gif / jpg / jpeg / png / svg / webp 图片');
   }
 
-  const baseName = normalizeFileBaseName(path.basename(fileName, path.extname(fileName)));
-  return `${baseName}${extension}`;
+  const requestedBaseName = typeof requestedFileName === 'string'
+    ? path.basename(requestedFileName.trim().replace(/\\/g, '/'), path.extname(requestedFileName.trim()))
+    : '';
+  const fallbackBaseName = path.basename(originalFileName, path.extname(originalFileName));
+  const baseName = normalizeFileBaseName(requestedBaseName || fallbackBaseName);
+
+  return {
+    baseName,
+    originalExtension: extension
+  };
 };
 
 const assertUploadFile = (file: File): void => {
@@ -123,14 +136,47 @@ const writeUniqueImageFile = async (
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
+const convertUploadImage = async (
+  file: File,
+  buffer: Buffer,
+  requestedFileName?: string
+): Promise<{
+  fileName: string;
+  buffer: Buffer;
+}> => {
+  const { baseName, originalExtension } = resolveUploadFileBaseName(file.name, requestedFileName);
+  if (!WEBP_CONVERTIBLE_IMAGE_EXTENSIONS.has(originalExtension)) {
+    return {
+      fileName: `${baseName}${originalExtension}`,
+      buffer
+    };
+  }
+
+  try {
+    const convertedBuffer = await sharp(buffer, { animated: true })
+      .rotate()
+      .webp({ quality: 84 })
+      .toBuffer();
+
+    return {
+      fileName: `${baseName}.webp`,
+      buffer: convertedBuffer
+    };
+  } catch {
+    throw new AdminImageUploadError('图片转为 WebP 失败，请换一张图片或稍后重试', 500);
+  }
+};
+
 export const uploadAdminMarkdownBodyImage = async ({
   collection,
   entryId,
-  file
+  file,
+  fileName
 }: {
   collection: 'essay' | 'memo';
   entryId: string;
   file: File;
+  fileName?: string;
 }): Promise<AdminImageUploadResult> => {
   assertUploadFile(file);
 
@@ -144,9 +190,13 @@ export const uploadAdminMarkdownBodyImage = async ({
     throw error;
   }
 
-  const safeFileName = getSafeImageFileName(file.name);
   const buffer = Buffer.from(await file.arrayBuffer());
-  const assetPath = await writeUniqueImageFile(resolveMarkdownBodyUploadDirectory(sourcePath), safeFileName, buffer);
+  const preparedUpload = await convertUploadImage(file, buffer, fileName);
+  const assetPath = await writeUniqueImageFile(
+    resolveMarkdownBodyUploadDirectory(sourcePath),
+    preparedUpload.fileName,
+    preparedUpload.buffer
+  );
   const relativePath = toRelativeProjectPath(assetPath);
 
   invalidateAdminImageCaches();
@@ -166,28 +216,44 @@ export const uploadAdminMarkdownBodyImage = async ({
 
 export const uploadAdminEssayImage = async ({
   entryId,
-  file
+  file,
+  fileName
 }: {
   entryId: string;
   file: File;
+  fileName?: string;
 }): Promise<AdminImageUploadResult> =>
-  uploadAdminMarkdownBodyImage({ collection: 'essay', entryId, file });
+  uploadAdminMarkdownBodyImage({
+    collection: 'essay',
+    entryId,
+    file,
+    ...(fileName ? { fileName } : {})
+  });
 
 export const uploadAdminMemoImage = async ({
   entryId,
-  file
+  file,
+  fileName
 }: {
   entryId: string;
   file: File;
+  fileName?: string;
 }): Promise<AdminImageUploadResult> =>
-  uploadAdminMarkdownBodyImage({ collection: 'memo', entryId, file });
+  uploadAdminMarkdownBodyImage({
+    collection: 'memo',
+    entryId,
+    file,
+    ...(fileName ? { fileName } : {})
+  });
 
 export const uploadAdminBitsImage = async ({
   entryId,
-  file
+  file,
+  fileName
 }: {
   entryId: string;
   file: File;
+  fileName?: string;
 }): Promise<AdminImageUploadResult> => {
   assertUploadFile(file);
 
@@ -200,9 +266,9 @@ export const uploadAdminBitsImage = async ({
     throw error;
   }
 
-  const safeFileName = getSafeImageFileName(file.name);
   const buffer = Buffer.from(await file.arrayBuffer());
-  const assetPath = await writeUniqueImageFile(resolveBitsUploadDirectory(), safeFileName, buffer);
+  const preparedUpload = await convertUploadImage(file, buffer, fileName);
+  const assetPath = await writeUniqueImageFile(resolveBitsUploadDirectory(), preparedUpload.fileName, preparedUpload.buffer);
   const relativePath = toRelativeProjectPath(assetPath);
   const src = getAdminImageFieldValue('bits.images', relativePath, 'public');
   if (!src) {

@@ -60,6 +60,7 @@ let urlInputEl = $state<HTMLInputElement | null>(null);
 let insertMode = $state<ImageInsertMode>('upload');
 let selectedFile = $state<File | null>(null);
 let previewUrl = $state('');
+let targetFileName = $state('');
 let altText = $state('');
 let remoteUrl = $state('');
 let presentation = $state<ImageInsertPresentation>('plain');
@@ -94,9 +95,18 @@ const formatBytes = (value: number): string => {
   return `${value} B`;
 };
 
+const getSuggestedTargetFileName = (value: string): string =>
+  value
+    .trim()
+    .replace(/\\/g, '/')
+    .split('/')
+    .pop()
+    ?.trim() ?? '';
+
 const resetDialog = () => {
   insertMode = 'upload';
   selectedFile = null;
+  targetFileName = '';
   altText = '';
   remoteUrl = '';
   presentation = 'plain';
@@ -124,6 +134,7 @@ const getEditDraftKey = (draft: ImageBlockDraft | null): string =>
 const applyEditDraft = (draft: ImageBlockDraft) => {
   insertMode = draft.src.startsWith('https://') ? 'url' : 'upload';
   selectedFile = null;
+  targetFileName = draft.src.startsWith('https://') ? '' : getSuggestedTargetFileName(draft.src);
   altText = draft.alt;
   remoteUrl = draft.src.startsWith('https://') ? draft.src : '';
   presentation = draft.presentation;
@@ -168,6 +179,9 @@ const setInsertMode = (mode: ImageInsertMode) => {
 const handleFileChange = () => {
   const [file] = Array.from(fileInputEl?.files ?? []);
   selectedFile = file ?? null;
+  targetFileName = file ? getSuggestedTargetFileName(file.name) : editDraft?.src && !editDraft.src.startsWith('https://')
+    ? getSuggestedTargetFileName(editDraft.src)
+    : '';
   errorText = '';
 };
 
@@ -199,7 +213,13 @@ const uploadAndInsert = async () => {
   busy = true;
   errorText = '';
 
-  const upload = await uploadContentEditorImage({ uploadEndpoint, collection, entryId, file: selectedFile });
+  const upload = await uploadContentEditorImage({
+    uploadEndpoint,
+    collection,
+    entryId,
+    file: selectedFile,
+    fileName: targetFileName
+  });
   if (upload.ok) {
     insertImageText(upload.result.src, upload.result);
   } else {
@@ -382,6 +402,20 @@ $effect(() => {
                 <img src={previewUrl} alt="" />
               </div>
             {/if}
+
+            <label class="admin-field admin-editor-image-insert__field">
+              <span class="admin-field__label">目标文件名</span>
+              <input
+                class="admin-field__control"
+                type="text"
+                bind:value={targetFileName}
+                disabled={disabled || busy}
+                placeholder="hero-cover.webp"
+              />
+              <span class="admin-editor-image-insert__hint">
+                栅格图默认转为 WebP；SVG 和 GIF 保持原格式。扩展名可省略，保存时会自动校正。
+              </span>
+            </label>
           {:else}
             <label class="admin-field admin-editor-image-insert__field">
               <span class="admin-field__label">图床链接</span>

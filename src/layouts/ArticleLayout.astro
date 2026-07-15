@@ -13,6 +13,7 @@ import {
 import type { ArticleMetaSettings, SidebarNavId } from '../lib/theme-settings';
 import { formatISODateUtc } from '../utils/format';
 import { truncateText } from '../utils/excerpt';
+import { resolveContentImagePublicUrl } from '../lib/content-local-images.mjs';
 
 type ArticleNeighborLink = {
   href: string;
@@ -35,7 +36,18 @@ const {
 
 const entryTags: string[] = entry?.data?.tags ?? [];
 const defaultImage = '/og.svg';
-const coverImage = entry?.data?.cover ?? null;
+const entrySourcePath = typeof (entry as { filePath?: unknown })?.filePath === 'string'
+  ? (entry as { filePath?: string }).filePath ?? null
+  : null;
+const coverImage = entry?.data?.cover
+  ? (resolveContentImagePublicUrl({
+      sourceFilePath: entrySourcePath,
+      value: entry.data.cover,
+      base: import.meta.env.BASE_URL ?? '/',
+      requireExists: true,
+      devFs: import.meta.env.DEV
+    }) ?? entry.data.cover)
+  : null;
 const ogImage = coverImage ?? defaultImage;
 const derivedText = getEssayDerivedText(entry);
 const rawDescription = entry?.data?.description?.trim?.() ?? '';

@@ -360,6 +360,7 @@ export const renderDetail = ({
   copyIcon,
   linkIcon,
   eyeIcon,
+  trashIcon,
   largeFileThreshold
 }: {
   detailEl: HTMLElement;
@@ -370,6 +371,7 @@ export const renderDetail = ({
   copyIcon: string;
   linkIcon: string;
   eyeIcon: string;
+  trashIcon: string;
   largeFileThreshold: number;
 }) => {
   if (!item) {
@@ -484,6 +486,15 @@ export const renderDetail = ({
               浏览器新标签中打开
             </a>`
         : ''}
+          <button
+            class="admin-btn admin-btn--ghost admin-images-browser__delete-btn"
+            type="button"
+            data-delete-path="${escapeHtml(item.path)}"
+            data-delete-label="${escapeHtml(item.fileName)}"
+          >
+            ${trashIcon}
+            删除图片
+          </button>
         </div>
       </div>
     </div>

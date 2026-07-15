@@ -9,14 +9,6 @@
 
 ## 朋友们
 
-:::friend{name="Astro" url="https://astro.build/" avatar="https://cdn.nodeimage.com/i/LAW2Al4JZrPhfTs7ObHbisPLGwWuR6x5.webp"}
-用于构建高性能内容网站的前端框架
-:::
-
-:::friend{name="Whono" url="https://github.com/cxro/astro-whono" avatar="author/avatar.webp"}
-一个极简的双栏 Astro 主题
-:::
-
 
 ## 常见问题
 

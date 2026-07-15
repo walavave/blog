@@ -12,6 +12,7 @@ import {
   LEGACY_MEMO_INTRO_LINES,
   resolveMemoRenderedSections
 } from '../../lib/memo-page';
+import { rewriteRenderedContentImageUrls } from '../../lib/content-local-images.mjs';
 import {
   MARKDOWN_MATH_STYLESHEET_DATA_ATTR,
   MARKDOWN_MATH_STYLESHEET_HREF,
@@ -35,29 +36,47 @@ const {
     page
   }
 } = getThemeSettings();
-const { headings } = await render(entry);
+const entrySourcePath = typeof (entry as { filePath?: unknown })?.filePath === 'string'
+  ? (entry as { filePath?: string }).filePath ?? null
+  : null;
+const entryWithContentImages = entry.rendered && entrySourcePath
+  ? {
+      ...entry,
+      rendered: {
+        ...entry.rendered,
+        html: rewriteRenderedContentImageUrls({
+          html: entry.rendered.html,
+          sourceFilePath: entrySourcePath,
+          base: import.meta.env.BASE_URL ?? '/',
+          requireExists: true,
+          devFs: import.meta.env.DEV
+        })
+      }
+    }
+  : entry;
+const { headings } = await render(entryWithContentImages);
 const memoTitle = page.memo.title ?? entry.data.title ?? DEFAULT_MEMO_TITLE;
 const memoSubtitle = page.memo.subtitle ?? entry.data.subtitle ?? DEFAULT_MEMO_SUBTITLE;
 const hasMath = containsMarkdownMath(entry.body ?? '');
 const katexStylesheetAttrs = { [MARKDOWN_MATH_STYLESHEET_DATA_ATTR]: 'true' };
 const memoRenderedSections = resolveMemoRenderedSections({
-  markdownBody: entry.body ?? '',
-  renderedHtml: entry.rendered?.html ?? '',
+  markdownBody: entryWithContentImages.body ?? '',
+  renderedHtml: entryWithContentImages.rendered?.html ?? '',
   headings
 });
 const MemoIntroContent = memoRenderedSections.introHtml
   ? (await render({
-    ...entry,
+    ...entryWithContentImages,
     rendered: {
-      ...entry.rendered,
+      ...entryWithContentImages.rendered,
       html: memoRenderedSections.introHtml
     }
   })).Content
   : null;
 const MemoBodyContent = (await render({
-  ...entry,
+  ...entryWithContentImages,
   rendered: {
-    ...entry.rendered,
+    ...entryWithContentImages.rendered,
     html: memoRenderedSections.contentHtml
   }
 })).Content;

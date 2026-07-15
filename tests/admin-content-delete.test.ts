@@ -28,6 +28,8 @@ describe('admin content delete api', () => {
     await mkdir(path.join(tempRoot, 'src', 'content', 'memo'), { recursive: true });
     await mkdir(path.join(tempRoot, 'src', 'content', 'about'), { recursive: true });
     await mkdir(path.join(tempRoot, 'src', 'content', 'essay', 'series', 'intro'), { recursive: true });
+    await mkdir(path.join(tempRoot, 'src', 'content', 'essay', 'demo-assets'), { recursive: true });
+    await mkdir(path.join(tempRoot, 'src', 'content', 'essay', 'series', 'intro', 'assets'), { recursive: true });
 
     await writeFile(
       path.join(tempRoot, 'src', 'content', 'essay', 'demo.md'),
@@ -44,6 +46,8 @@ describe('admin content delete api', () => {
       ['---', 'title: Intro Essay', 'date: 2026-03-19', 'draft: false', '---', '', '# Intro', ''].join('\n'),
       'utf8'
     );
+    await writeFile(path.join(tempRoot, 'src', 'content', 'essay', 'demo-assets', 'cover.webp'), 'demo-image');
+    await writeFile(path.join(tempRoot, 'src', 'content', 'essay', 'series', 'intro', 'assets', 'inline.webp'), 'intro-image');
     await writeFile(
       path.join(tempRoot, 'src', 'content', 'bits', 'demo.md'),
       ['---', 'date: 2025-02-03T22:30:00+08:00', 'draft: false', '---', '', 'Visible bit', ''].join('\n'),
@@ -96,8 +100,14 @@ describe('admin content delete api', () => {
       })
     );
     expect(payload.result.trashedPath).toMatch(/^\.trash\/content\/\d{8}-\d{9}(?:-\d+)?\/src\/content\/essay\/demo\.md$/);
+    expect(payload.result.trashedAssetPaths).toEqual([
+      expect.stringMatching(/^\.trash\/content\/\d{8}-\d{9}(?:-\d+)?\/src\/content\/essay\/demo-assets$/)
+    ]);
     await expect(access(path.join(tempRoot, 'src', 'content', 'essay', 'demo.md'))).rejects.toThrow();
+    await expect(access(path.join(tempRoot, 'src', 'content', 'essay', 'demo-assets'))).rejects.toThrow();
     await expect(readFile(toAbsoluteTestPath(tempRoot, payload.result.trashedPath), 'utf8')).resolves.toContain('# Demo');
+    await expect(readFile(path.join(toAbsoluteTestPath(tempRoot, payload.result.trashedAssetPaths[0]), 'cover.webp'), 'utf8'))
+      .resolves.toBe('demo-image');
   });
 
   it('deletes a source file whose file name contains spaces', async () => {
@@ -136,8 +146,16 @@ describe('admin content delete api', () => {
 
     expect(result.relativePath).toBe('src/content/essay/series/intro/index.md');
     expect(result.trashedPath).toMatch(/\/src\/content\/essay\/series\/intro\/index\.md$/);
+    expect(result.trashedAssetPaths).toEqual([
+      expect.stringMatching(/\/src\/content\/essay\/series\/intro\/assets$/)
+    ]);
+    const trashedAssetPath = result.trashedAssetPaths[0];
+    expect(trashedAssetPath).toBeTruthy();
     await expect(access(path.join(tempRoot, 'src', 'content', 'essay', 'series', 'intro', 'index.md'))).rejects.toThrow();
+    await expect(access(path.join(tempRoot, 'src', 'content', 'essay', 'series', 'intro', 'assets'))).rejects.toThrow();
     await expect(readFile(toAbsoluteTestPath(tempRoot, result.trashedPath), 'utf8')).resolves.toContain('# Intro');
+    await expect(readFile(path.join(toAbsoluteTestPath(tempRoot, trashedAssetPath!), 'inline.webp'), 'utf8'))
+      .resolves.toBe('intro-image');
   });
 
   it('rejects memo delete requests because memo is a fixed readonly page', async () => {

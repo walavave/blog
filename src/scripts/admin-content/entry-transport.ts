@@ -27,6 +27,7 @@ export type AdminContentDeleteResult = {
   deleted: boolean;
   relativePath: string;
   trashedPath: string;
+  trashedAssetPaths: string[];
 };
 
 export type AdminContentPreviewResult = {
@@ -101,7 +102,8 @@ export const getPayloadDeleteResult = (value: unknown): AdminContentDeleteResult
     entryId: typeof value.result.entryId === 'string' ? value.result.entryId.trim() : '',
     deleted: value.result.deleted === true,
     relativePath: typeof value.result.relativePath === 'string' ? value.result.relativePath.trim() : '',
-    trashedPath: typeof value.result.trashedPath === 'string' ? value.result.trashedPath.trim() : ''
+    trashedPath: typeof value.result.trashedPath === 'string' ? value.result.trashedPath.trim() : '',
+    trashedAssetPaths: getStringArray(value.result.trashedAssetPaths)
   };
 };
 

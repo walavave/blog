@@ -267,6 +267,14 @@
   min-width: 0;
 }
 
+.admin-editor-image-insert__hint {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: var(--admin-text-xs);
+  line-height: 1.45;
+}
+
 .admin-editor-image-insert__error {
   margin: 0;
   padding: 9px 10px;

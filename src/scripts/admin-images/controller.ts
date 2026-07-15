@@ -12,6 +12,7 @@ import {
 import { type AdminImageClientMeta } from '../admin-shared/image-client';
 import {
   copyText,
+  deleteByPath,
   fetchList,
   fetchMetaByPath,
   navigateToRefresh,
@@ -185,7 +186,8 @@ export const initAdminImagesConsole = () => {
   const icons = {
     copy: getIconMarkup('copy'),
     link: getIconMarkup('link'),
-    eye: getIconMarkup('eye')
+    eye: getIconMarkup('eye'),
+    trash: getIconMarkup('trash')
   };
 
   const getCurrentPageSize = (): number =>
@@ -258,6 +260,7 @@ export const initAdminImagesConsole = () => {
       copyIcon: icons.copy,
       linkIcon: icons.link,
       eyeIcon: icons.eye,
+      trashIcon: icons.trash,
       largeFileThreshold: LARGE_FILE_THRESHOLD
     });
   };
@@ -831,6 +834,47 @@ export const initAdminImagesConsole = () => {
   });
 
   detailEl.addEventListener('click', async (event) => {
+    const deleteTarget = event.target instanceof Element
+      ? event.target.closest<HTMLButtonElement>('[data-delete-path]')
+      : null;
+    if (deleteTarget instanceof HTMLButtonElement) {
+      if (busy) return;
+
+      const assetPath = deleteTarget.dataset.deletePath?.trim() ?? '';
+      const fileLabel = deleteTarget.dataset.deleteLabel?.trim() ?? '当前图片';
+      if (!assetPath) {
+        setStatus('error', '图片路径为空，无法删除');
+        return;
+      }
+
+      const confirmed = window.confirm(
+        [
+          `确认删除图片“${fileLabel}”？`,
+          '',
+          `路径：${assetPath}`,
+          '文件会移到 .trash/images/，之后可手动恢复。'
+        ].join('\n')
+      );
+      if (!confirmed) {
+        return;
+      }
+
+      busy = true;
+      syncControls();
+      setStatus('loading', `正在删除 ${fileLabel}...`, false);
+
+      try {
+        const result = await deleteByPath(bootstrap.deleteEndpoint, assetPath);
+        setStatus('ok', `已删除图片，已移入 ${result.trashedPath}`);
+        navigateToRefresh();
+      } catch (error) {
+        setStatus('error', error instanceof Error ? error.message : '删除图片失败');
+        busy = false;
+        syncControls();
+      }
+      return;
+    }
+
     const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('[data-copy-value]') : null;
     if (!(target instanceof HTMLButtonElement)) return;
 

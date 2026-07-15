@@ -4,6 +4,7 @@ import { getEssaySlug, getVisibleEssayRouteEntries, type EssayEntry } from '../.
 import ArticleLayout from '../../layouts/ArticleLayout.astro';
 import { createWithBase } from '../../utils/format';
 import { getThemeSettings, getVisibleArticleMetaTags } from '../../lib/theme-settings';
+import { rewriteRenderedContentImageUrls } from '../../lib/content-local-images.mjs';
 
 type ArticleNeighborLink = {
   href: string;
@@ -37,13 +38,31 @@ const { entry, prev, next } = Astro.props as {
   prev: ArticleNeighborLink | null;
   next: ArticleNeighborLink | null;
 };
-const { Content } = await render(entry);
+const entrySourcePath = typeof (entry as { filePath?: unknown })?.filePath === 'string'
+  ? (entry as { filePath?: string }).filePath ?? null
+  : null;
+const entryWithContentImages = entry.rendered && entrySourcePath
+  ? {
+      ...entry,
+      rendered: {
+        ...entry.rendered,
+        html: rewriteRenderedContentImageUrls({
+          html: entry.rendered.html,
+          sourceFilePath: entrySourcePath,
+          base: import.meta.env.BASE_URL ?? '/',
+          requireExists: true,
+          devFs: import.meta.env.DEV
+        })
+      }
+    }
+  : entry;
+const { Content } = await render(entryWithContentImages);
 const articleMetaSettings = getThemeSettings().settings.ui.articleMeta;
 const visibleTags = getVisibleArticleMetaTags(entry.data.tags, 'detail');
 ---
 
 <ArticleLayout
-  entry={entry}
+  entry={entryWithContentImages}
   prev={prev}
   next={next}
   articleMetaSettings={articleMetaSettings}

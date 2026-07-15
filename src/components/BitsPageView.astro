@@ -198,25 +198,12 @@ const katexStylesheetAttrs = { [MARKDOWN_MATH_STYLESHEET_DATA_ATTR]: 'true' };
             </div>
           ) : null}
         </div>
-        <button
-          class="new"
-          id="bits-new-btn"
-          type="button"
-          data-new-bit
-          data-bits-client-control
-          data-bits-draft-url="bits/draft-dialog/"
-          aria-label="碎碎念"
-          aria-haspopup="dialog"
-          aria-controls="bits-draft-dialog"
-        >
-          <span class="new-icon" aria-hidden="true">✍</span>
-          <span class="new-label">碎碎念</span>
-        </button>
+        <!-- bits draft trigger intentionally disabled; keep implementation in source for future restoration. -->
       </div>
     </div>
     <div class="bits-status" id="bits-search-status"></div>
     <p class="sr-only" id="bits-search-live" role="status" aria-live="polite" aria-atomic="true"></p>
-    <div class="bits-draft-load-status" id="bits-draft-load-status" role="status" aria-live="polite"></div>
+    <!-- bits draft load status intentionally disabled with the trigger. -->
   </div>
 
   <div data-bits-browse>
@@ -261,7 +248,7 @@ const katexStylesheetAttrs = { [MARKDOWN_MATH_STYLESHEET_DATA_ATTR]: 'true' };
     <p class="bits-noscript-note">搜索、年份筛选与草稿生成功能需要 JavaScript，当前仅保留列表浏览。</p>
   </noscript>
 
-  <div id="bits-draft-root"></div>
+  <!-- bits draft dialog mount intentionally disabled with the trigger. -->
   <Lightbox
     id="lightbox"
     label="图片预览"
@@ -273,96 +260,7 @@ const katexStylesheetAttrs = { [MARKDOWN_MATH_STYLESHEET_DATA_ATTR]: 'true' };
   />
 
   <script>
-    import { createWithBase } from '../utils/format';
     import '../scripts/bits-search.ts';
     import '../scripts/bits-lightbox.ts';
-
-    const openBtn = document.querySelector<HTMLButtonElement>('[data-new-bit]');
-    const root = document.getElementById('bits-draft-root');
-    const loadStatus = document.getElementById('bits-draft-load-status');
-    const labelEl = openBtn?.querySelector<HTMLElement>('.new-label') ?? null;
-    const base = import.meta.env.BASE_URL ?? '/';
-    const withBase = createWithBase(base);
-    const fragmentPath = openBtn?.dataset.bitsDraftUrl ?? 'bits/draft-dialog/';
-    const defaultLabel = labelEl?.textContent?.trim() || '碎碎念';
-
-    let fragmentPromise: Promise<void> | null = null;
-    let controllerPromise: Promise<{ open: (options?: { opener?: HTMLElement | null }) => void }> | null = null;
-
-    const setLoadStatus = (text: string, tone: 'info' | 'error' = 'info') => {
-      if (!loadStatus) return;
-      loadStatus.textContent = text;
-      if (!text) {
-        loadStatus.removeAttribute('data-tone');
-        return;
-      }
-      loadStatus.setAttribute('data-tone', tone);
-    };
-
-    const setLoading = (loading: boolean) => {
-      if (!openBtn) return;
-      openBtn.disabled = loading;
-      openBtn.toggleAttribute('data-loading', loading);
-      openBtn.setAttribute('aria-busy', String(loading));
-      if (labelEl) {
-        labelEl.textContent = loading ? '加载中…' : defaultLabel;
-      }
-    };
-
-    const ensureDraftFragment = async () => {
-      if (document.getElementById('bits-draft-dialog')) return;
-      if (!root) throw new Error('bits draft root missing');
-      if (!fragmentPromise) {
-        fragmentPromise = fetch(withBase(fragmentPath))
-          .then((response) => {
-            if (!response.ok) throw new Error(`bits draft fragment ${response.status}`);
-            return response.text();
-          })
-          .then((html) => {
-            if (!html.trim()) throw new Error('bits draft fragment empty');
-            if (document.getElementById('bits-draft-dialog')) return;
-            const template = document.createElement('template');
-            template.innerHTML = html.trim();
-            root.replaceChildren(template.content.cloneNode(true));
-          })
-          .catch((error) => {
-            fragmentPromise = null;
-            throw error;
-          });
-      }
-      return fragmentPromise;
-    };
-
-    const loadDraftController = async () => {
-      if (!controllerPromise) {
-        controllerPromise = Promise.all([ensureDraftFragment(), import('../scripts/bits-draft.ts')])
-          .then(([, mod]) => {
-            const controller = mod.initBitsDraft();
-            if (!controller) throw new Error('bits draft controller init failed');
-            return controller;
-          })
-          .catch((error) => {
-            controllerPromise = null;
-            throw error;
-          });
-      }
-      return controllerPromise;
-    };
-
-    openBtn?.addEventListener('click', async (event) => {
-      event.preventDefault();
-      if (openBtn.disabled) return;
-      setLoading(true);
-      setLoadStatus('正在加载碎碎念工具…');
-      try {
-        const controller = await loadDraftController();
-        setLoadStatus('');
-        controller.open({ opener: openBtn });
-      } catch {
-        setLoadStatus('碎碎念工具加载失败，请重试。', 'error');
-      } finally {
-        setLoading(false);
-      }
-    });
   </script>
 </BaseLayout>

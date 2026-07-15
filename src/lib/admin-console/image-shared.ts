@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { access, mkdir, readdir, readFile, rename, stat } from 'node:fs/promises';
 import path from 'node:path';
 import {
   ADMIN_IMAGE_BROWSE_GROUP_LABELS,
@@ -42,6 +42,7 @@ export type { AdminImageBrowseGroup, AdminImageOrigin, AdminImageScopeKey } from
 export type { AdminImageScopeIndex } from './image-browse';
 export {
   ADMIN_IMAGE_LIST_API_PATH,
+  ADMIN_IMAGE_DELETE_API_PATH,
   ADMIN_IMAGE_META_API_PATH,
   ADMIN_IMAGE_UPLOAD_API_PATH
 } from './admin-api-paths';
@@ -135,6 +136,12 @@ export type AdminImageMetaResult = {
   size: number | null;
   mimeType: string | null;
   previewSrc: string | null;
+};
+
+export type AdminImageDeleteResult = {
+  deleted: true;
+  relativePath: string;
+  trashedPath: string;
 };
 
 type AdminImageAssetRecord = {
@@ -251,7 +258,53 @@ const adminImageScopeIndexPendingLoads = new Map<string, Promise<AdminImageScope
 
 const getProjectRoot = (): string => process.env.ASTRO_WHONO_INTERNAL_TEST_PROJECT_ROOT?.trim() || process.cwd();
 const toAbsoluteAssetPath = (assetPath: string): string => path.join(getProjectRoot(), ...assetPath.split('/'));
+const toRelativeProjectPath = (filePath: string): string =>
+  path.relative(getProjectRoot(), filePath).replace(/\\/g, '/');
 const getAdminImageCacheKey = (...parts: string[]): string => `${getProjectRoot()}::${parts.join('::')}`;
+
+const fileExists = async (filePath: string): Promise<boolean> => {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const pad = (value: number, size = 2): string =>
+  String(value).padStart(size, '0');
+
+const formatTrashTimestamp = (date = new Date()): string =>
+  [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate())
+  ].join('')
+  + '-'
+  + [
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+    pad(date.getMilliseconds(), 3)
+  ].join('');
+
+const getImageTrashDestinationPath = async (
+  sourceRelativePath: string,
+  date = new Date()
+): Promise<string> => {
+  const projectRoot = getProjectRoot();
+  const pathSegments = sourceRelativePath.split('/').filter(Boolean);
+  const timestamp = formatTrashTimestamp(date);
+
+  for (let index = 1; index <= 999; index += 1) {
+    const bucket = index === 1 ? timestamp : `${timestamp}-${index}`;
+    const bucketPath = path.join(projectRoot, '.trash', 'images', bucket);
+    const destination = path.join(bucketPath, ...pathSegments);
+    if (!(await fileExists(bucketPath))) return destination;
+  }
+
+  throw new Error('无法生成可用的图片回收站路径');
+};
 
 const readAdminImageShortCache = <T>(
   cache: Map<string, AdminImageShortCacheEntry<T>>,
@@ -1073,6 +1126,27 @@ const resolveLocalTargetFromPath = (assetPath: string): LocalImageTarget => {
   }
 
   throw new AdminImageError('图片路径必须是 public/**、src/assets/** 或 src/content/** 下的规范仓库相对图片路径');
+};
+
+export const moveAdminImageToTrash = async (assetPath: string): Promise<AdminImageDeleteResult> => {
+  const target = resolveLocalTargetFromPath(assetPath);
+  const absolutePath = toAbsoluteAssetPath(target.path);
+
+  if (!(await fileExists(absolutePath))) {
+    throw new AdminImageError(`图片文件不存在：${target.path}`, 404);
+  }
+
+  const relativePath = toRelativeProjectPath(absolutePath);
+  const destinationPath = await getImageTrashDestinationPath(relativePath);
+  await mkdir(path.dirname(destinationPath), { recursive: true });
+  await rename(absolutePath, destinationPath);
+  invalidateAdminImageCaches();
+
+  return {
+    deleted: true,
+    relativePath,
+    trashedPath: toRelativeProjectPath(destinationPath)
+  };
 };
 
 export const getAdminImageMeta = async (input: AdminImageMetaInput): Promise<AdminImageMetaResult> => {

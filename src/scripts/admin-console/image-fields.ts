@@ -45,7 +45,7 @@ const FIELD_CONFIGS: readonly ThemeImageFieldConfig[] = [
     pickerDescription: '',
     pickerResetLabel: '恢复默认',
     pickerResetStatus: '已恢复 Hero 默认图',
-    pickerFallbackCurrentValue: 'src/assets/hero.png',
+    pickerFallbackCurrentValue: 'src/assets/hero.jpg',
     pickerFallbackCurrentLabel: '默认图片'
   },
   {

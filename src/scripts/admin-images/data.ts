@@ -26,6 +26,12 @@ import {
   type AdminImageState
 } from './types';
 
+export type AdminImageDeleteResponse = {
+  deleted: true;
+  relativePath: string;
+  trashedPath: string;
+};
+
 const parsePositiveInteger = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : fallback;
 
@@ -180,6 +186,7 @@ export const parseBootstrap = (text: string): AdminImageBootstrap | null => {
       !isRecord(payload)
       || typeof payload.listEndpoint !== 'string'
       || typeof payload.metaEndpoint !== 'string'
+      || typeof payload.deleteEndpoint !== 'string'
       || !isRecord(payload.initialState)
     ) {
       return null;
@@ -200,6 +207,7 @@ export const parseBootstrap = (text: string): AdminImageBootstrap | null => {
     return {
       listEndpoint: payload.listEndpoint,
       metaEndpoint: payload.metaEndpoint,
+      deleteEndpoint: payload.deleteEndpoint,
       initialState: {
         scope: initialScope,
         group: isAdminImageBrowseGroup(normalizedGroup) ? normalizedGroup : DEFAULT_GROUP,
@@ -256,6 +264,46 @@ export const fetchMetaByPath = async (endpoint: string, assetPath: string): Prom
     '图片元数据请求失败'
   );
   return parseAdminImageMetaResponse(payload);
+};
+
+export const deleteByPath = async (
+  endpoint: string,
+  assetPath: string
+): Promise<AdminImageDeleteResponse> => {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({ path: assetPath })
+  });
+
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new Error('图片删除响应格式无效');
+  }
+
+  if (
+    !isRecord(payload)
+    || payload.ok !== true
+    || !isRecord(payload.result)
+    || payload.result.deleted !== true
+    || typeof payload.result.relativePath !== 'string'
+    || typeof payload.result.trashedPath !== 'string'
+  ) {
+    if (isRecord(payload) && payload.ok === false && Array.isArray(payload.errors) && typeof payload.errors[0] === 'string') {
+      throw new Error(payload.errors[0]);
+    }
+    throw new Error('图片删除响应格式无效');
+  }
+
+  return {
+    deleted: true,
+    relativePath: payload.result.relativePath,
+    trashedPath: payload.result.trashedPath
+  };
 };
 
 export const updateUrl = (state: AdminImageState) => {

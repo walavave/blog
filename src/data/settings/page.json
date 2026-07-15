@@ -1,7 +1,7 @@
 {
   "essay": {
     "title": "随笔",
-    "subtitle": "随笔与杂记"
+    "subtitle": "随笔与周刊"
   },
   "archive": {
     "title": "归档",
@@ -11,13 +11,13 @@
     "title": "絮语",
     "subtitle": "生活不只是长篇",
     "defaultAuthor": {
-      "name": "Whono",
+      "name": "Walavave",
       "avatar": "author/avatar.webp"
     }
   },
   "memo": {
-    "title": null,
-    "subtitle": null
+    "title": "小记",
+    "subtitle": "人生标本"
   },
   "about": {
     "title": "关于",

@@ -5,6 +5,7 @@ import BrandIcon from '../../components/BrandIcon.astro';
 import '../../styles/about.css';
 import { getThemeSettings } from '../../lib/theme-settings';
 import { replaceAboutContactLinksPlaceholderHtml } from '../../lib/about-contact-links';
+import { rewriteRenderedContentImageUrls } from '../../lib/content-local-images.mjs';
 
 const entry = await getEntry('about', 'index');
 if (!entry) {
@@ -15,12 +16,21 @@ const { settings } = getThemeSettings();
 const resolvedSocialItems = settings.site.socialLinks.resolvedSocialItems.filter((item) => item.visible);
 const aboutTitle = settings.page.about.title || '关于';
 const aboutSubtitle = settings.page.about.subtitle;
+const entrySourcePath = typeof (entry as { filePath?: unknown })?.filePath === 'string'
+  ? (entry as { filePath?: string }).filePath ?? null
+  : null;
 const entryWithContactLinks = entry.rendered
   ? {
       ...entry,
       rendered: {
         ...entry.rendered,
-        html: replaceAboutContactLinksPlaceholderHtml(entry.rendered.html, resolvedSocialItems)
+        html: rewriteRenderedContentImageUrls({
+          html: replaceAboutContactLinksPlaceholderHtml(entry.rendered.html, resolvedSocialItems),
+          sourceFilePath: entrySourcePath,
+          base: import.meta.env.BASE_URL ?? '/',
+          requireExists: true,
+          devFs: import.meta.env.DEV
+        })
       }
     }
   : entry;

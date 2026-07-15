@@ -1,8 +1,6 @@
 import { access, mkdir, rename } from 'node:fs/promises';
 import path from 'node:path';
-import {
-  resolveAdminContentEntrySourcePath
-} from './content-entry-source';
+import { resolveAdminContentEntrySourcePath } from './content-entry-source';
 import {
   readAdminContentEntryEditorPayload,
   type AdminContentEditorPayload
@@ -26,6 +24,7 @@ export type AdminContentDeleteResult = {
   deleted: true;
   relativePath: string;
   trashedPath: string;
+  trashedAssetPaths: string[];
 };
 
 export class AdminContentDeleteConfirmationError extends Error {
@@ -79,23 +78,42 @@ const formatTrashTimestamp = (date = new Date()): string =>
     pad(date.getMilliseconds(), 3)
   ].join('');
 
-const getTrashDestinationPath = async (
-  sourceRelativePath: string,
-  date = new Date()
-): Promise<string> => {
+const getTrashBucketPath = async (date = new Date()): Promise<string> => {
   const projectRoot = getProjectRoot();
-  const pathSegments = sourceRelativePath.split('/').filter(Boolean);
   const timestamp = formatTrashTimestamp(date);
 
-  // 保留原始相对路径，恢复时可以直接把文件移回 src/content 下。
   for (let index = 1; index <= 999; index += 1) {
     const bucket = index === 1 ? timestamp : `${timestamp}-${index}`;
     const bucketPath = path.join(projectRoot, '.trash', 'content', bucket);
-    const destination = path.join(bucketPath, ...pathSegments);
-    if (!(await fileExists(bucketPath))) return destination;
+    if (!(await fileExists(bucketPath))) return bucketPath;
   }
 
   throw new Error('无法生成可用的内容回收站路径');
+};
+
+const getTrashDestinationPath = (bucketPath: string, sourceRelativePath: string): string =>
+  path.join(bucketPath, ...sourceRelativePath.split('/').filter(Boolean));
+
+const resolveMarkdownBodyAssetDirectoryRelativePath = (
+  collection: AdminContentDeletableCollectionKey,
+  sourcePath: string
+): string | null => {
+  if (!getAdminContentCollectionCapability(collection).bodyImageUpload) {
+    return null;
+  }
+
+  const parsed = path.parse(sourcePath);
+  const assetDirectoryPath = parsed.name === 'index'
+    ? path.join(parsed.dir, 'assets')
+    : path.join(parsed.dir, `${parsed.name}-assets`);
+  const assetRelativePath = toRelativeProjectPath(assetDirectoryPath);
+  const expectedPrefix = `src/content/${collection}/`;
+
+  if (!assetRelativePath.startsWith(expectedPrefix)) {
+    throw new Error(`拒绝移动 content 根目录外的资源目录：${assetRelativePath}`);
+  }
+
+  return assetRelativePath;
 };
 
 export const moveAdminContentEntryToTrash = async (
@@ -109,9 +127,24 @@ export const moveAdminContentEntryToTrash = async (
     throw new Error(`拒绝移动 content 根目录外的文件：${relativePath}`);
   }
 
-  const destinationPath = await getTrashDestinationPath(relativePath);
+  const assetRelativePath = resolveMarkdownBodyAssetDirectoryRelativePath(collection, sourcePath);
+  const bucketPath = await getTrashBucketPath();
+  const destinationPath = getTrashDestinationPath(bucketPath, relativePath);
+  const trashedAssetPaths: string[] = [];
+
   await mkdir(path.dirname(destinationPath), { recursive: true });
   await rename(sourcePath, destinationPath);
+
+  if (assetRelativePath) {
+    const assetAbsolutePath = path.join(getProjectRoot(), ...assetRelativePath.split('/'));
+    if (await fileExists(assetAbsolutePath)) {
+      const assetDestinationPath = getTrashDestinationPath(bucketPath, assetRelativePath);
+      await mkdir(path.dirname(assetDestinationPath), { recursive: true });
+      await rename(assetAbsolutePath, assetDestinationPath);
+      trashedAssetPaths.push(toRelativeProjectPath(assetDestinationPath));
+    }
+  }
+
   invalidateAdminImageCaches();
 
   return {
@@ -119,7 +152,8 @@ export const moveAdminContentEntryToTrash = async (
     entryId,
     deleted: true,
     relativePath,
-    trashedPath: toRelativeProjectPath(destinationPath)
+    trashedPath: toRelativeProjectPath(destinationPath),
+    trashedAssetPaths
   };
 };
 

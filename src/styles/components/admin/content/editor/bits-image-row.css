@@ -215,6 +215,30 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+.admin-content-image-row__field--upload-name {
+  min-width: 0;
+  grid-template-columns: 88px minmax(0, 1fr);
+}
+
+.admin-content-image-row__upload-label {
+  color: var(--faint);
+  font-size: var(--admin-text-xs);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.admin-content-image-row__upload-input {
+  min-width: 0;
+}
+
+.admin-content-image-row__upload-hint {
+  grid-column: 2;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--admin-text-xs);
+  line-height: 1.45;
+}
+
 .admin-content-image-row__details {
   display: flex;
   flex-wrap: wrap;
@@ -366,6 +390,14 @@
 
   .admin-content-image-row__detail-input {
     width: min(220px, 70vw);
+  }
+
+  .admin-content-image-row__field--upload-name {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-content-image-row__upload-hint {
+    grid-column: 1;
   }
 }
 

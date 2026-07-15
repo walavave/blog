@@ -1,13 +1,13 @@
 {
-  "introLead": "这是一个开源写作主题与示例内容库:包含 随笔/essay、小记/memo、归档/archive 与 絮语/bits，使用与配置请见 README 。",
+  "introLead": "当我们谈论机器人，实际上是在观摩诸多技术盘旋编织成的艺术。它让我们反思人类的过去和现在，思索未来。",
   "introMore": "更多文章请访问",
   "introMoreLinks": [
     "archive",
     "tag"
   ],
   "showIntroLead": true,
-  "showIntroMore": true,
+  "showIntroMore": false,
   "heroPresetId": "default",
   "heroImageSrc": null,
-  "heroImageAlt": "Whono theme preview"
+  "heroImageAlt": "我们从哪里来，我们是谁，我们到哪里去"
 }

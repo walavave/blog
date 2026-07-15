@@ -15,6 +15,7 @@ import type { MarkdownInsertPlacement } from '../markdown/markdown-tools';
 type GalleryItem = {
   id: number;
   source: string;
+  fileName: string;
   alt: string;
   caption: string;
 };
@@ -73,6 +74,7 @@ const createGalleryItem = (): GalleryItem => {
   return {
     id: nextItemId,
     source: '',
+    fileName: '',
     alt: '',
     caption: ''
   };
@@ -83,6 +85,7 @@ const createGalleryItemFromDraft = (draft: GalleryImageDraft): GalleryItem => {
   return {
     id: nextItemId,
     source: draft.src,
+    fileName: draft.src.startsWith('https://') ? '' : draft.src.trim().replace(/\\/g, '/').split('/').pop() ?? '',
     alt: draft.alt,
     caption: draft.caption
   };
@@ -184,10 +187,16 @@ const handleFileChange = async () => {
 
   uploadingItemId = itemId;
   errorText = '';
+  const uploadTargetItem = items.find((item) => item.id === itemId) ?? null;
 
-  const upload = await uploadEssayEditorImage({ uploadEndpoint, entryId, file });
+  const upload = await uploadEssayEditorImage({
+    uploadEndpoint,
+    entryId,
+    file,
+    fileName: uploadTargetItem?.fileName ?? ''
+  });
   if (upload.ok) {
-    updateItem(itemId, { source: upload.result.src });
+    updateItem(itemId, { source: upload.result.src, fileName: upload.result.fileName });
   } else {
     errorText = upload.error;
   }
@@ -399,11 +408,14 @@ $effect(() => {
                       data-gallery-source-input
                       type="text"
                       inputmode="url"
-                      autocomplete="off"
-                      value={item.source}
-                      disabled={disabled || busy}
-                      placeholder="请上传图片或输入图片链接"
-                      oninput={(event) => updateItem(item.id, { source: event.currentTarget.value })}
+                        autocomplete="off"
+                        value={item.source}
+                        disabled={disabled || busy}
+                        placeholder="请上传图片或输入图片链接"
+                      oninput={(event) => updateItem(item.id, {
+                        source: event.currentTarget.value,
+                        ...(event.currentTarget.value.trim().startsWith('https://') ? { fileName: '' } : {})
+                      })}
                     />
                     <div class="admin-editor-gallery-insert__source-actions admin-editor-gallery-insert__source-actions--trailing" role="group" aria-label={`第 ${index + 1} 张图片删除操作`}>
                       <button
@@ -421,6 +433,17 @@ $effect(() => {
                 </div>
 
                 <div class="admin-editor-gallery-insert__meta-grid">
+                  <label class="admin-field admin-editor-gallery-insert__field">
+                    <span class="admin-field__label">目标文件名</span>
+                    <input
+                      class="admin-field__control"
+                      type="text"
+                      value={item.fileName}
+                      disabled={disabled || busy}
+                      placeholder="gallery-image.webp"
+                      oninput={(event) => updateItem(item.id, { fileName: event.currentTarget.value })}
+                    />
+                  </label>
                   <label class="admin-field admin-editor-gallery-insert__field">
                     <span class="admin-field__label">图片描述</span>
                     <input

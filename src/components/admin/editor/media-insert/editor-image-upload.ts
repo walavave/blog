@@ -21,6 +21,7 @@ export type EditorImageUploadInput = {
   collection: AdminContentImageUploadCollectionKey;
   entryId: string;
   file: File;
+  fileName?: string;
 };
 
 export type EditorImageUploadResponse =
@@ -55,13 +56,17 @@ export const uploadContentEditorImage = async ({
   uploadEndpoint,
   collection,
   entryId,
-  file
+  file,
+  fileName
 }: EditorImageUploadInput): Promise<EditorImageUploadResponse> => {
   try {
     const formData = new FormData();
     formData.set('collection', collection);
     formData.set('entryId', entryId);
     formData.set('image', file);
+    if (typeof fileName === 'string' && fileName.trim()) {
+      formData.set('fileName', fileName.trim());
+    }
 
     const response = await fetch(uploadEndpoint, {
       method: 'POST',

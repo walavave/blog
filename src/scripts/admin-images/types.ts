@@ -28,6 +28,7 @@ export type AdminImageListItem = AdminImageBrowseItem & {
 export type AdminImageBootstrap = {
   listEndpoint: string;
   metaEndpoint: string;
+  deleteEndpoint: string;
   initialState: {
     scope: AdminImageScope;
     group: string;

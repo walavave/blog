@@ -53,12 +53,12 @@ describe('admin-console/shared', () => {
 
   it('normalizes valid hero image sources and rejects invalid local paths', () => {
     expect(normalizeHeroImageSrc('@/assets/hero/cover.webp')).toBe('src/assets/hero/cover.webp');
-    expect(normalizeHeroImageSrc('public/images/hero.png')).toBe('/images/hero.png');
+    expect(normalizeHeroImageSrc('public/images/hero.jpg')).toBe('/images/hero.jpg');
     expect(normalizeHeroImageSrc('https://example.com/hero.avif')).toBe('https://example.com/hero.avif');
-    expect(normalizeHeroImageSrc('/images/hero.png?size=2')).toBeUndefined();
-    expect(normalizeHeroImageSrc('../hero.png')).toBeUndefined();
+    expect(normalizeHeroImageSrc('/images/hero.jpg?size=2')).toBeUndefined();
+    expect(normalizeHeroImageSrc('../hero.jpg')).toBeUndefined();
     expect(getHeroImageLocalFilePath('src/assets/hero/cover.webp')).toBe('src/assets/hero/cover.webp');
-    expect(getHeroImageLocalFilePath('/images/hero.png')).toBe('public/images/hero.png');
+    expect(getHeroImageLocalFilePath('/images/hero.jpg')).toBe('public/images/hero.jpg');
   });
 
   it('normalizes bits avatar paths and rejects invalid values', () => {
@@ -81,8 +81,8 @@ describe('admin-console/shared', () => {
     expect(getAdminImageFieldPreviewSrc('bits.images', '//example.com/demo.webp')).toBeNull();
     expect(getAdminImageFieldPreviewSrc('bits.images', '../demo.webp')).toBeNull();
 
-    expect(getAdminImageFieldPreviewSrc('home.heroImageSrc', '/images/hero.png', '/blog/')).toBe('/blog/images/hero.png');
-    expect(getAdminImageFieldPreviewSrc('home.heroImageSrc', 'src/assets/hero.png')).toBeNull();
+    expect(getAdminImageFieldPreviewSrc('home.heroImageSrc', '/images/hero.jpg', '/blog/')).toBe('/blog/images/hero.jpg');
+    expect(getAdminImageFieldPreviewSrc('home.heroImageSrc', 'src/assets/hero.jpg')).toBeNull();
     expect(getAdminImageFieldPreviewSrc('home.heroImageSrc', 'https://example.com/hero.webp')).toBe(
       'https://example.com/hero.webp'
     );
@@ -99,15 +99,15 @@ describe('admin-console/shared', () => {
       '/blog/_astro/hero.hash.png?origWidth=1200&origHeight=800'
     );
     expect(getAdminRenderedImagePreviewSrc('/blog/_astro/hero.hash.png', '/blog/')).toBe('/blog/_astro/hero.hash.png');
-    expect(getAdminRenderedImagePreviewSrc('/@fs/D:/Server-Related/dev/astro-whono/src/assets/hero.png')).toBe(
-      '/@fs/D:/Server-Related/dev/astro-whono/src/assets/hero.png'
+    expect(getAdminRenderedImagePreviewSrc('/@fs/D:/Server-Related/dev/astro-whono/src/assets/hero.jpg')).toBe(
+      '/@fs/D:/Server-Related/dev/astro-whono/src/assets/hero.jpg'
     );
-    expect(getAdminRenderedImagePreviewSrc('/@fs/D:/Server-Related/dev/astro-whono/src/assets/hero.png?origWidth=1200')).toBe(
-      '/@fs/D:/Server-Related/dev/astro-whono/src/assets/hero.png?origWidth=1200'
+    expect(getAdminRenderedImagePreviewSrc('/@fs/D:/Server-Related/dev/astro-whono/src/assets/hero.jpg?origWidth=1200')).toBe(
+      '/@fs/D:/Server-Related/dev/astro-whono/src/assets/hero.jpg?origWidth=1200'
     );
     expect(getAdminRenderedImagePreviewSrc('https://example.com/hero.webp')).toBe('https://example.com/hero.webp');
     expect(getAdminRenderedImagePreviewSrc('http://example.com/hero.webp')).toBeNull();
-    expect(getAdminRenderedImagePreviewSrc('data:image/png;base64,hero.png')).toBeNull();
+    expect(getAdminRenderedImagePreviewSrc('data:image/png;base64,hero.jpg')).toBeNull();
     expect(getAdminRenderedImagePreviewSrc('//example.com/hero.webp')).toBeNull();
     expect(getAdminRenderedImagePreviewSrc('/_astro/hero.hash.png#preview')).toBeNull();
   });

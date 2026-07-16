@@ -297,6 +297,27 @@ const waitForAnimationFrame = (): Promise<void> =>
     window.requestAnimationFrame(() => resolve());
   });
 
+const replacePreviewHtml = async (html: string) => {
+  const shouldPreserveBodyScroll = syncScrollEnabled
+    && scrollSyncAvailable
+    && shell.effectiveViewMode === 'both';
+
+  if (shouldPreserveBodyScroll) {
+    scrollSyncController.cancelQueued();
+    scrollSyncController.setGuarded(true);
+    scrollSyncController.setLastSource('body');
+  }
+
+  previewHtml = html;
+
+  if (!shouldPreserveBodyScroll) return;
+
+  await tick();
+  await waitForAnimationFrame();
+  scrollSyncController.queueLastSource();
+  scrollSyncController.releaseGuard(3);
+};
+
 const scrollPreviewToOutlineTarget = (outlineKey: string): boolean => {
   const previewElement = previewScrollElement;
   const scrolled = scrollPreviewElementToOutlineKey(
@@ -525,7 +546,7 @@ const requestPreview = async () => {
       return;
     }
 
-    previewHtml = previewResult.html;
+    await replacePreviewHtml(previewResult.html);
     previewWarnings = previewResult.warnings;
   } catch {
     if (previewRequest.signal.aborted || !previewRequest.isCurrent()) return;

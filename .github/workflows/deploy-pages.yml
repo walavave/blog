@@ -17,9 +17,11 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_PAGES_TOKEN: ${{ secrets.PAGES_TOKEN != '' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Resolve Node version
         id: node
@@ -36,7 +38,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ steps.node.outputs.version }}
           cache: npm
@@ -51,11 +53,19 @@ jobs:
           SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
         run: npm run build
 
+      - name: Enable and setup Pages
+        if: env.HAS_PAGES_TOKEN == 'true'
+        uses: actions/configure-pages@v6
+        with:
+          token: ${{ secrets.PAGES_TOKEN }}
+          enablement: true
+
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        if: env.HAS_PAGES_TOKEN != 'true'
+        uses: actions/configure-pages@v6
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./dist
 
@@ -68,4 +78,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

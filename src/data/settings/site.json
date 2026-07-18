@@ -8,7 +8,7 @@
     "copyright": "Walavave Blog · by walavave"
   },
   "adminOverview": {
-    "publicVisible": true,
+    "publicVisible": false,
     "hiddenMessage": "作者暂未公开此页面。"
   },
   "socialLinks": {

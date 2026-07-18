@@ -88,13 +88,31 @@ const createEmptyFrontmatter = (): AdminEssayEditorValues => ({
   badge: ''
 });
 
-const createNewEssayFrontmatter = (): AdminEssayEditorValues => {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
+const padDatePart = (value: number): string => String(value).padStart(2, '0');
+
+const formatLocalDate = (date: Date): string =>
+  `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
+
+const formatLocalTimezoneOffset = (date: Date): string => {
+  const offsetMinutes = -date.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? '+' : '-';
+  const absoluteOffsetMinutes = Math.abs(offsetMinutes);
+  return `${sign}${padDatePart(Math.floor(absoluteOffsetMinutes / 60))}:${padDatePart(absoluteOffsetMinutes % 60)}`;
+};
+
+const formatLocalDateTime = (date: Date): string =>
+  `${formatLocalDate(date)}T${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}:${padDatePart(date.getSeconds())}${formatLocalTimezoneOffset(date)}`;
+
+const formatDefaultEssayEntryId = (date: Date): string =>
+  `${String(date.getFullYear()).slice(-2)}-${date.getMonth() + 1}-${date.getDate()}`;
+
+const createNewEssayFrontmatter = (now: Date): AdminEssayEditorValues => {
+  const date = formatLocalDate(now);
   return {
     ...createEmptyFrontmatter(),
-    date: `${now.getFullYear()}-${month}-${day}`,
+    date,
+    publishedAt: formatLocalDateTime(now),
+    updatedAt: date,
     draft: true
   };
 };
@@ -226,7 +244,8 @@ const openCreateDialog = async (trigger: HTMLElement) => {
     return;
   }
 
-  const nextFrontmatter = createNewEssayFrontmatter();
+  const now = new Date();
+  const nextFrontmatter = createNewEssayFrontmatter(now);
   dialogMode = 'create';
   busy = false;
   loadingEntry = false;
@@ -234,8 +253,8 @@ const openCreateDialog = async (trigger: HTMLElement) => {
   selectedCollection = 'essay';
   selectedEntryId = '';
   selectedDefaultPublicSlug = '';
-  createEntryId = '';
-  createEntryIdEdited = false;
+  createEntryId = formatDefaultEssayEntryId(now);
+  createEntryIdEdited = true;
   revision = '';
   baselineFrontmatter = cloneInfoFrontmatter(nextFrontmatter);
   frontmatter = cloneInfoFrontmatter(nextFrontmatter);
@@ -252,8 +271,9 @@ const resetToBaseline = () => {
   if (!baselineFrontmatter) return;
   frontmatter = cloneInfoFrontmatter(baselineFrontmatter);
   if (dialogMode === 'create') {
-    createEntryId = '';
-    createEntryIdEdited = false;
+    const baselineDate = new Date(`${baselineFrontmatter.date}T00:00:00`);
+    createEntryId = formatDefaultEssayEntryId(baselineDate);
+    createEntryIdEdited = true;
   }
   issues = [];
   errors = [];

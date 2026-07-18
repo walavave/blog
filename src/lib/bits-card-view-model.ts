@@ -2,7 +2,7 @@ import { createWithBase, formatDateTime } from '../utils/format';
 import { deriveMarkdownText, truncateText } from '../utils/excerpt';
 import { normalizeBitsImageSource } from './bits-image-source';
 
-export const BITS_CARD_FULL_RENDER_LIMIT = 180;
+export const BITS_CARD_EXCERPT_LIMIT = 180;
 
 export type BitsCardImageInput = {
   src?: string | undefined;
@@ -83,8 +83,8 @@ export const deriveBitsCardText = (bodyText: string): BitsCardText => {
   const { plainText, excerptText } = deriveMarkdownText(bodyText);
   return {
     plainText,
-    excerpt: truncateText(excerptText, BITS_CARD_FULL_RENDER_LIMIT),
-    shouldRenderFull: plainText.length <= BITS_CARD_FULL_RENDER_LIMIT
+    excerpt: truncateText(excerptText, BITS_CARD_EXCERPT_LIMIT),
+    shouldRenderFull: true
   };
 };
 

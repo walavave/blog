@@ -1,30 +1,25 @@
-/* ============ Callout v2 (minimal, title data-icon) ============ */
 @import "./callout-tokens.css";
 
 .prose .callout {
-  --callout-accent: var(--muted);
-  --callout-line: var(--border);
+  --callout-accent: var(--callout-note-accent);
+  --callout-border: var(--callout-note-border);
+  --callout-bg: var(--callout-note-bg);
+  --callout-icon: var(--callout-note-icon);
 
   position: relative;
-  padding: 4px 0 4px var(--quote-pad);
-  margin: 1rem 0;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
+  margin: 1.25rem 0;
+  padding: .9rem 1rem;
+  overflow: hidden;
+  color: var(--text);
+  background: var(--callout-bg);
+  border: 1px solid var(--callout-border);
+  border-left: 4px solid var(--callout-accent);
+  border-radius: 6px;
   font-family: var(--font-copy);
 }
 
-
-.prose .callout::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 3px;
-  border-radius: 2px;
-  background: var(--callout-line);
+.prose .callout > :first-child {
+  margin-top: 0;
 }
 
 .prose .callout > :last-child {
@@ -35,11 +30,11 @@
   display: flex;
   align-items: center;
   gap: .5rem;
-  margin: 0 0 .35rem 0;
-  font-weight: 600;
-  font-style: italic;
-  letter-spacing: .02em;
-  line-height: 1.2;
+  margin: 0 0 .45rem;
+  color: var(--callout-accent);
+  font-weight: 700;
+  font-style: normal;
+  line-height: 1.35;
 }
 
 .prose .callout .callout-icon {
@@ -48,50 +43,38 @@
 
 .prose .callout .callout-title::before {
   content: "";
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 1rem;
   height: 1rem;
   flex: 0 0 1rem;
-  border-radius: 999px;
-  box-shadow: inset 0 0 0 2px var(--callout-accent);
-  background: transparent;
-  color: var(--callout-accent);
+  background: var(--callout-accent);
+  -webkit-mask: var(--callout-icon) no-repeat center / contain;
+  mask: var(--callout-icon) no-repeat center / contain;
 }
 
 .prose .callout strong {
   font-weight: 650;
 }
 
-.prose .callout.note {
-  --callout-accent: var(--callout-note-accent);
-  --callout-icon: var(--callout-note-icon);
-}
-
 .prose .callout.tip {
   --callout-accent: var(--callout-tip-accent);
+  --callout-border: var(--callout-tip-border);
+  --callout-bg: var(--callout-tip-bg);
   --callout-icon: var(--callout-tip-icon);
 }
 
 .prose .callout.info {
   --callout-accent: var(--callout-info-accent);
+  --callout-border: var(--callout-info-border);
+  --callout-bg: var(--callout-info-bg);
   --callout-icon: var(--callout-info-icon);
 }
 
 .prose .callout.warning {
   --callout-accent: var(--callout-warning-accent);
+  --callout-border: var(--callout-warning-border);
+  --callout-bg: var(--callout-warning-bg);
   --callout-icon: var(--callout-warning-icon);
-}
-
-@supports ((-webkit-mask-image: url("")) or (mask-image: url(""))) {
-  .prose .callout .callout-title::before {
-    border-radius: 0;
-    box-shadow: none;
-    background: var(--callout-accent);
-    -webkit-mask: var(--callout-icon) no-repeat center / contain;
-    mask: var(--callout-icon) no-repeat center / contain;
-  }
 }
 
 .prose .callout .callout-title[data-icon]::before {
@@ -99,20 +82,12 @@
   width: auto;
   height: auto;
   min-width: 1rem;
-  line-height: 1;
-  border-radius: 0;
-  box-shadow: none;
   background: transparent;
   -webkit-mask: none;
   mask: none;
+  line-height: 1;
 }
 
 .prose .callout .callout-title[data-icon="none"]::before {
   display: none;
-}
-
-@supports (background: color-mix(in oklch, #000 10%, #fff)) {
-  .prose .callout {
-    --callout-line: color-mix(in oklch, var(--border) 70%, var(--bg));
-  }
 }

@@ -1,18 +1,39 @@
 :root {
-  --callout-note-accent: var(--muted);
+  --callout-note-accent: #2563eb;
+  --callout-note-border: #93c5fd;
+  --callout-note-bg: #eff6ff;
   --callout-note-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0%200%2024%2024' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12%2020h9'/><path d='M16.5%203.5a2.1%202.1%200%200%201%203%203L7%2019l-4%201%201-4%2012.5-12.5z'/></svg>");
-  --callout-tip-accent: #7a9b87;
+
+  --callout-tip-accent: #7c3aed;
+  --callout-tip-border: #c4b5fd;
+  --callout-tip-bg: #f5f3ff;
   --callout-tip-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0%200%2024%2024' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M15%2014c.2-1%20.7-1.7%201.5-2.5%201-.9%201.5-2.2%201.5-3.5A6%206%200%200%200%206%208c0%201%20.2%202.2%201.5%203.5.7.7%201.3%201.5%201.5%202.5'/><path d='M9%2018h6'/><path d='M10%2022h4'/></svg>");
-  --callout-info-accent: var(--faint);
+
+  --callout-info-accent: #087f8c;
+  --callout-info-border: #99d9df;
+  --callout-info-bg: #effcfd;
   --callout-info-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0%200%2024%2024' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='M12%2010v6'/><path d='M12%207h.01'/></svg>");
-  --callout-warning-accent: var(--accent);
+
+  --callout-warning-accent: #a16207;
+  --callout-warning-border: #facc15;
+  --callout-warning-bg: #fefce8;
   --callout-warning-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0%200%2024%2024' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M10.3%203.9l-8.4%2014.5a1.6%201.6%200%200%200%201.4%202.4h16.4a1.6%201.6%200%200%200%201.4-2.4L13.7%203.9a1.6%201.6%200%200%200-3.4%200z'/><path d='M12%209v5'/><path d='M12%2016h.01'/></svg>");
 }
 
-@supports (background: color-mix(in oklch, #000 10%, #fff)) {
-  :root {
-    --callout-note-accent: color-mix(in oklch, var(--text) 65%, var(--border));
-    --callout-info-accent: color-mix(in oklch, var(--accent) 35%, var(--text));
-    --callout-warning-accent: color-mix(in oklch, var(--accent) 65%, black);
-  }
+:root[data-theme="dark"] {
+  --callout-note-accent: #60a5fa;
+  --callout-note-border: #1e40af;
+  --callout-note-bg: #172554;
+
+  --callout-tip-accent: #c4b5fd;
+  --callout-tip-border: #5b21b6;
+  --callout-tip-bg: #2e1065;
+
+  --callout-info-accent: #67e8f9;
+  --callout-info-border: #155e75;
+  --callout-info-bg: #083344;
+
+  --callout-warning-accent: #fde047;
+  --callout-warning-border: #854d0e;
+  --callout-warning-bg: #422006;
 }

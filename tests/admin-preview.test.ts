@@ -205,7 +205,7 @@ describe('admin preview api', () => {
     const { splitMarkdownFrontmatter } = await import('../src/lib/admin-console/frontmatter');
 
     const markdownGuide = splitMarkdownFrontmatter(
-      await readFile('src/content/essay/markdown-guide.md', 'utf8')
+      await readFile('src/content/essay/26-7-17.md', 'utf8')
     ).bodyText;
     const memo = splitMarkdownFrontmatter(
       await readFile('src/content/memo/index.md', 'utf8')
@@ -311,7 +311,7 @@ describe('admin preview api', () => {
     expect(payload.result.html).not.toContain('about-site-info__eyebrow');
     expect(payload.result.html).not.toContain('src="/author/avatar.webp"');
     expect(payload.result.html).toContain('class="contact-list"');
-    expect(payload.result.html).toContain('href="https://github.com/cxro/astro-whono"');
+    expect(payload.result.html).toContain(`href="${getThemeSettings().settings.site.socialLinks.github}"`);
     expect(payload.result.html).toContain(`href="mailto:${getThemeSettings().settings.site.socialLinks.email}"`);
     expect(payload.result.html).not.toContain('data-about-contact-links');
     expect(payload.result.html).not.toContain('javascript:alert');

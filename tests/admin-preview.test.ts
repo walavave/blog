@@ -220,7 +220,7 @@ describe('admin preview api', () => {
       source: memo
     });
 
-    expect(markdownGuideResult.html).toContain('class="callout note"');
+    expect(markdownGuideResult.html).toContain('class="callout info"');
     expect(markdownGuideResult.codeHighlight).toBe('shiki-rehype');
     expect(markdownGuideResult.html).toContain('class="code-block"');
     expect(markdownGuideResult.html).toContain('<code class="language-ts">');

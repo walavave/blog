@@ -68,6 +68,7 @@ export type AdminThemeControls = RequiredElements<{
   inputHomeIntroMoreLinkSecondary: HTMLSelectElement | null;
   inputPageEssayTitle: HTMLInputElement | null;
   inputPageEssaySubtitle: HTMLInputElement | null;
+  inputPageEssaySearchSubresultLimit: HTMLInputElement | null;
   inputPageArchiveTitle: HTMLInputElement | null;
   inputPageArchiveSubtitle: HTMLInputElement | null;
   inputPageBitsTitle: HTMLInputElement | null;
@@ -155,6 +156,7 @@ export const queryAdminThemeControls = (): AdminThemeControls | null => {
     inputHomeIntroMoreLinkSecondary: byId<HTMLSelectElement>('home-intro-more-link-secondary'),
     inputPageEssayTitle: byId<HTMLInputElement>('page-essay-title'),
     inputPageEssaySubtitle: byId<HTMLInputElement>('page-essay-subtitle'),
+    inputPageEssaySearchSubresultLimit: byId<HTMLInputElement>('page-essay-search-subresult-limit'),
     inputPageArchiveTitle: byId<HTMLInputElement>('page-archive-title'),
     inputPageArchiveSubtitle: byId<HTMLInputElement>('page-archive-subtitle'),
     inputPageBitsTitle: byId<HTMLInputElement>('page-bits-title'),

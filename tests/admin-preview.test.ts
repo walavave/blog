@@ -25,6 +25,7 @@ describe('admin preview api', () => {
           '<script>alert("x")</script>',
           '',
           '<figure class="figure"><figcaption>说明</figcaption></figure>',
+          '<article-toc></article-toc>',
           ':::'
         ].join('\n')
       }),
@@ -40,6 +41,7 @@ describe('admin preview api', () => {
     expect(payload.result.html).toContain('class="callout warning"');
     expect(payload.result.html).toContain('class="callout-title"');
     expect(payload.result.html).toContain('<figure class="figure">');
+    expect(payload.result.html).toContain('<article-toc></article-toc>');
     expect(payload.result.html).not.toContain('<script>');
     expect(typeof payload.result.elapsedMs).toBe('number');
   });

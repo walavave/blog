@@ -1,7 +1,8 @@
 {
   "essay": {
     "title": "随笔",
-    "subtitle": "随笔与周刊"
+    "subtitle": "随笔与周刊",
+    "searchSubresultLimit": 5
   },
   "archive": {
     "title": "归档",

@@ -44,6 +44,7 @@ type ValidationContext = {
   inputPageMemoTitle: HTMLInputElement;
   inputPageAboutTitle: HTMLInputElement;
   inputPageEssaySubtitle: HTMLInputElement;
+  inputPageEssaySearchSubresultLimit: HTMLInputElement;
   inputPageArchiveSubtitle: HTMLInputElement;
   inputPageBitsSubtitle: HTMLInputElement;
   inputPageMemoSubtitle: HTMLInputElement;
@@ -112,6 +113,7 @@ export const createValidation = ({
   inputPageMemoTitle,
   inputPageAboutTitle,
   inputPageEssaySubtitle,
+  inputPageEssaySearchSubresultLimit,
   inputPageArchiveSubtitle,
   inputPageBitsSubtitle,
   inputPageMemoSubtitle,
@@ -229,6 +231,8 @@ export const createValidation = ({
         return () => inputHeroImageSrc;
       case 'home.heroImageAlt':
         return () => inputHeroImageAlt;
+      case 'page.essay.searchSubresultLimit':
+        return () => inputPageEssaySearchSubresultLimit;
       case 'page.bits.defaultAuthor.name':
         return () => inputPageBitsAuthorName;
       case 'page.bits.defaultAuthor.avatar':

@@ -46,6 +46,7 @@ if (!root) {
   const tagScopeRaw = (root.dataset.tagScope ?? '').trim();
   const activeTagKey = (root.dataset.activeTagKey ?? '').trim();
   const activeTagLabel = (root.dataset.activeTagLabel ?? '').trim();
+  const searchSubresultLimit = Math.max(1, Number.parseInt(root.dataset.searchSubresultLimit || '5', 10) || 5);
   const browseRoot = document.querySelector<HTMLElement>('[data-entry-browse]');
   const resultsRoot = document.querySelector<HTMLElement>('[data-entry-search-results]');
   const resultsSummary = document.querySelector<HTMLElement>('[data-entry-search-results-summary]');
@@ -119,19 +120,29 @@ if (!root) {
   };
   const renderSearchResults = (matchedItems: IndexItem[], terms: string[]) => {
     if (!browseRoot || !resultsRoot || !resultsList) return false;
-    const renderedResults = matchedItems.flatMap((item) => {
+    const renderedGroups = matchedItems.flatMap((item) => {
+      const articleHref = withBase(`/archive/${encodeURIComponent(item.slug)}/`);
       const sections = item.sections?.length ? item.sections : [{ heading: '', slug: '', text: item.text }];
       const sectionResults = sections.flatMap((section) => getSearchSnippets(section.text, terms, 32).map((snippet) => {
-        const heading = section.heading ? `${item.title} · ${section.heading}` : item.title;
+        const heading = section.heading || '文章正文';
         const hash = section.slug ? `#${encodeURIComponent(section.slug)}` : '';
-        return `<article class="essay-search-result"><a class="essay-search-result__link" href="${escapeHtml(withBase(`/archive/${encodeURIComponent(item.slug)}/${hash}`))}"><p class="essay-search-result__title">${highlightText(heading, terms)}</p><p class="essay-search-result__excerpt">${highlightText(snippet, terms)}</p></a></article>`;
-      }));
-      if (sectionResults.length) return sectionResults;
-      const fallback = getSearchSnippets(`${item.title} ${item.description}`, terms, 32)[0];
-      return fallback ? [`<article class="essay-search-result"><a class="essay-search-result__link" href="${escapeHtml(withBase(`/archive/${encodeURIComponent(item.slug)}/`))}"><p class="essay-search-result__title">${highlightText(item.title, terms)}</p><p class="essay-search-result__excerpt">${highlightText(fallback, terms)}</p></a></article>`] : [];
+        return `<a class="essay-search-result__match" href="${escapeHtml(`${articleHref}${hash}`)}"><p class="essay-search-result__title">${highlightText(heading, terms)}</p><p class="essay-search-result__excerpt">${highlightText(snippet, terms)}</p></a>`;
+      })).slice(0, searchSubresultLimit);
+      if (!sectionResults.length) {
+        const fallback = getSearchSnippets(`${item.title} ${item.description}`, terms, 32)[0];
+        if (fallback) {
+          sectionResults.push(`<a class="essay-search-result__match" href="${escapeHtml(articleHref)}"><p class="essay-search-result__title">文章信息</p><p class="essay-search-result__excerpt">${highlightText(fallback, terms)}</p></a>`);
+        }
+      }
+      if (!sectionResults.length) return [];
+      return [{
+        count: sectionResults.length,
+        html: `<article class="essay-search-result"><a class="essay-search-result__article" href="${escapeHtml(articleHref)}">${highlightText(item.title, terms)}</a><div class="essay-search-result__matches">${sectionResults.join('')}</div></article>`
+      }];
     });
-    if (resultsSummary) resultsSummary.textContent = renderedResults.length ? `找到 ${matchedItems.length} 篇随笔，共 ${renderedResults.length} 处匹配` : '未找到匹配内容';
-    resultsList.innerHTML = renderedResults.length ? renderedResults.join('') : '<p class="essay-search-results__empty">未找到相关内容，换个关键词试试。</p>';
+    const occurrenceCount = renderedGroups.reduce((count, group) => count + group.count, 0);
+    if (resultsSummary) resultsSummary.textContent = renderedGroups.length ? `找到 ${renderedGroups.length} 篇随笔，共 ${occurrenceCount} 处匹配` : '未找到匹配内容';
+    resultsList.innerHTML = renderedGroups.length ? renderedGroups.map((group) => group.html).join('') : '<p class="essay-search-results__empty">未找到相关内容，换个关键词试试。</p>';
     browseRoot.setAttribute('hidden', 'true');
     resultsRoot.removeAttribute('hidden');
     return true;

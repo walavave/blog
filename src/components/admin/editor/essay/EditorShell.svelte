@@ -1,5 +1,6 @@
 <script lang="ts">
 import { tick } from 'svelte';
+import '../../../../scripts/article-toc';
 import { containsMarkdownMath } from '../../../../lib/markdown-math';
 import { ensureMarkdownMathStylesheet } from '../../../../lib/markdown-math-styles';
 import {
@@ -800,6 +801,7 @@ $effect(() => {
   data-side-panel={shell.sidePanelLayout}
 >
   <EditorTopControls
+    tocToolEnabled={true}
     bind:actionMenuElement={topActionsEl}
     {busy}
     bodyToolsEnabled={bodyEditingEnabled}

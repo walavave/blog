@@ -123,6 +123,19 @@ describe('admin editor markdown transforms', () => {
     });
   });
 
+  it('inserts the table of contents marker as a block at the cursor', () => {
+    const edit = applyMarkdownToolbarCommandToText('beforeafter', { from: 6, to: 6 }, {
+      id: 1,
+      kind: 'insert',
+      text: '<article-toc></article-toc>',
+      placement: 'block'
+    });
+
+    expect(edit.insert).toBe('\n\n<article-toc></article-toc>\n\n');
+    expect(edit.from).toBe(6);
+    expect(edit.to).toBe(6);
+  });
+
   it('applies details blocks as a toolbar tool', () => {
     expect(MARKDOWN_DETAILS_INSERT_TOOL).toMatchObject({
       type: 'details',

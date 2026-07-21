@@ -76,6 +76,7 @@ type FormCodecContext = {
   inputHomeIntroMoreLinkSecondary: HTMLSelectElement;
   inputPageEssayTitle: HTMLInputElement;
   inputPageEssaySubtitle: HTMLInputElement;
+  inputPageEssaySearchSubresultLimit: HTMLInputElement;
   inputPageArchiveTitle: HTMLInputElement;
   inputPageArchiveSubtitle: HTMLInputElement;
   inputPageBitsTitle: HTMLInputElement;
@@ -187,6 +188,7 @@ export const createFormCodec = ({
   inputHomeIntroMoreLinkSecondary,
   inputPageEssayTitle,
   inputPageEssaySubtitle,
+  inputPageEssaySearchSubresultLimit,
   inputPageArchiveTitle,
   inputPageArchiveSubtitle,
   inputPageBitsTitle,
@@ -504,7 +506,8 @@ export const createFormCodec = ({
       page: {
         essay: {
           title: normalizeOptionalSingleLine(inputPageEssayTitle.value),
-          subtitle: normalizeOptionalSingleLine(inputPageEssaySubtitle.value)
+          subtitle: normalizeOptionalSingleLine(inputPageEssaySubtitle.value),
+          searchSubresultLimit: parseInteger(inputPageEssaySearchSubresultLimit.value) ?? 5
         },
         archive: {
           title: normalizeOptionalSingleLine(inputPageArchiveTitle.value),
@@ -600,6 +603,7 @@ export const createFormCodec = ({
     refreshHomeIntroPreview();
     inputPageEssayTitle.value = settings.page.essay?.title || '';
     inputPageEssaySubtitle.value = settings.page.essay?.subtitle || '';
+    inputPageEssaySearchSubresultLimit.value = String(settings.page.essay?.searchSubresultLimit ?? 5);
     inputPageArchiveTitle.value = settings.page.archive?.title || '';
     inputPageArchiveSubtitle.value = settings.page.archive?.subtitle || '';
     inputPageBitsTitle.value = settings.page.bits?.title || '';

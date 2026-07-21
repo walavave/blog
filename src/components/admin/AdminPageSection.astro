@@ -1,7 +1,12 @@
 ---
 import AdminIcon from './AdminIcon.astro';
 import AdminHelpTip from './AdminHelpTip.astro';
-import { ADMIN_ARTICLE_META_DATE_LABEL_MAX_LENGTH } from '../../lib/admin-console/theme-shared';
+import {
+  ADMIN_ARTICLE_META_DATE_LABEL_MAX_LENGTH,
+  ADMIN_SEARCH_SUBRESULT_LIMIT_DEFAULT,
+  ADMIN_SEARCH_SUBRESULT_LIMIT_MAX,
+  ADMIN_SEARCH_SUBRESULT_LIMIT_MIN
+} from '../../lib/admin-console/theme-shared';
 
 interface Props {
   pageTitleMaxLength: number;
@@ -54,6 +59,22 @@ const {
           aria-label="/essay/ 页面副标题"
         />
       </span>
+    </label>
+    <label class="admin-field">
+      <span class="admin-label">
+        <span class="admin-label__main">搜索子结果最大数量</span>
+        <span class="admin-label__hint">（每篇随笔最多显示的命中位置）</span>
+      </span>
+      <input
+        class="admin-field__control"
+        id="page-essay-search-subresult-limit"
+        type="number"
+        min={ADMIN_SEARCH_SUBRESULT_LIMIT_MIN}
+        max={ADMIN_SEARCH_SUBRESULT_LIMIT_MAX}
+        step="1"
+        inputmode="numeric"
+        value={ADMIN_SEARCH_SUBRESULT_LIMIT_DEFAULT}
+      />
     </label>
     <label class="admin-field">
       <span class="admin-label">

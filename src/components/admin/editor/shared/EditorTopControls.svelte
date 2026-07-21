@@ -21,6 +21,7 @@ type Props = {
   imageToolEnabled?: boolean;
   galleryToolEnabled?: boolean;
   aboutDirectiveToolsEnabled?: boolean;
+  tocToolEnabled?: boolean;
   outlineOpen: boolean;
   outlineVisible: boolean;
   outlineToggleLabel: string;
@@ -85,6 +86,7 @@ let {
   imageToolEnabled = true,
   galleryToolEnabled = true,
   aboutDirectiveToolsEnabled = false,
+  tocToolEnabled = false,
   outlineOpen,
   outlineVisible,
   outlineToggleLabel,
@@ -149,6 +151,7 @@ let {
     {imageToolEnabled}
     {galleryToolEnabled}
     {aboutDirectiveToolsEnabled}
+    {tocToolEnabled}
     {outlineOpen}
     {outlineVisible}
     {outlineToggleLabel}

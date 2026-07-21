@@ -40,7 +40,8 @@ export const sanitizeSchema = {
     'button',
     'svg',
     'path',
-    'rect'
+    'rect',
+    'article-toc'
   ],
   attributes: {
     ...(defaultSchema.attributes ?? {}),

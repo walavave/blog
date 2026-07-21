@@ -142,6 +142,9 @@ export const ADMIN_X_HOSTS = ['x.com', 'twitter.com'] as const;
 export const ADMIN_HOME_INTRO_MAX_LENGTH = 240;
 export const ADMIN_PAGE_TITLE_MAX_LENGTH = 60;
 export const ADMIN_PAGE_SUBTITLE_MAX_LENGTH = 120;
+export const ADMIN_SEARCH_SUBRESULT_LIMIT_DEFAULT = 5;
+export const ADMIN_SEARCH_SUBRESULT_LIMIT_MIN = 1;
+export const ADMIN_SEARCH_SUBRESULT_LIMIT_MAX = 20;
 export const ADMIN_NAV_ORNAMENT_DEFAULT = '·';
 export const ADMIN_NAV_ORNAMENT_MAX_LENGTH = 4;
 export const ADMIN_FOOTER_START_YEAR_MIN = 1900;
@@ -392,6 +395,7 @@ export const canonicalizeAdminThemeSettings = (
   const adminOverview = isRecord(site.adminOverview) ? site.adminOverview : {};
   const socialLinks = isRecord(site.socialLinks) ? site.socialLinks : {};
   const customItems = Array.isArray(socialLinks.custom) ? socialLinks.custom : [];
+  const essayPage = isRecord(page.essay) ? page.essay : {};
   const bitsPage = isRecord(page.bits) ? page.bits : {};
   const bitsDefaultAuthor = isRecord(bitsPage.defaultAuthor) ? bitsPage.defaultAuthor : {};
   const rawPresetOrder = isRecord(socialLinks.presetOrder) ? socialLinks.presetOrder : {};
@@ -520,8 +524,12 @@ export const canonicalizeAdminThemeSettings = (
     },
     page: {
       essay: {
-        title: normalizeOptionalSingleLine(String(isRecord(page.essay) ? page.essay.title ?? '' : '')),
-        subtitle: normalizeOptionalSingleLine(String(isRecord(page.essay) ? page.essay.subtitle ?? '' : ''))
+        title: normalizeOptionalSingleLine(String(essayPage.title ?? '')),
+        subtitle: normalizeOptionalSingleLine(String(essayPage.subtitle ?? '')),
+        searchSubresultLimit: Math.min(
+          ADMIN_SEARCH_SUBRESULT_LIMIT_MAX,
+          Math.max(ADMIN_SEARCH_SUBRESULT_LIMIT_MIN, parseInteger(essayPage.searchSubresultLimit as string | number | null | undefined) ?? ADMIN_SEARCH_SUBRESULT_LIMIT_DEFAULT)
+        )
       },
       archive: {
         title: normalizeOptionalSingleLine(String(isRecord(page.archive) ? page.archive.title ?? '' : '')),
@@ -928,6 +936,17 @@ export const validateAdminThemeSettings = (
       pushIssue(path, `${label} 不能超过 ${ADMIN_PAGE_SUBTITLE_MAX_LENGTH} 个字符`);
     }
   });
+
+  if (
+    !Number.isInteger(settings.page.essay.searchSubresultLimit) ||
+    settings.page.essay.searchSubresultLimit < ADMIN_SEARCH_SUBRESULT_LIMIT_MIN ||
+    settings.page.essay.searchSubresultLimit > ADMIN_SEARCH_SUBRESULT_LIMIT_MAX
+  ) {
+    pushIssue(
+      'page.essay.searchSubresultLimit',
+      `搜索子结果最大数量必须是 ${ADMIN_SEARCH_SUBRESULT_LIMIT_MIN}–${ADMIN_SEARCH_SUBRESULT_LIMIT_MAX} 之间的整数`
+    );
+  }
 
   if (!settings.page.bits?.defaultAuthor?.name) {
     pushIssue('page.bits.defaultAuthor.name', 'Bits 默认作者名不能为空');

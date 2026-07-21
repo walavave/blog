@@ -50,6 +50,7 @@ const insertTool = { label: '插入', icon: 'plus' } as const;
 const galleryTool = { label: '图片画廊', icon: 'images' } as const;
 const detailsTool = MARKDOWN_DETAILS_INSERT_TOOL;
 const moreSeparatorTool = MARKDOWN_MORE_SEPARATOR_INSERT_TOOL;
+const tocTool = { label: '添加目录', icon: 'square-chart-gantt' } as const;
 const listTool = { label: '列表', icon: 'list' } as const;
 
 const markdownTextTools = [
@@ -89,6 +90,7 @@ type Props = {
   imageToolEnabled?: boolean;
   galleryToolEnabled?: boolean;
   aboutDirectiveToolsEnabled?: boolean;
+  tocToolEnabled?: boolean;
   outlineOpen?: boolean;
   outlineVisible?: boolean;
   outlineToggleLabel: string;
@@ -134,6 +136,7 @@ let {
   imageToolEnabled = true,
   galleryToolEnabled = true,
   aboutDirectiveToolsEnabled = false,
+  tocToolEnabled = false,
   outlineOpen = false,
   outlineVisible = outlineOpen,
   outlineToggleLabel,
@@ -591,6 +594,18 @@ $effect(() => {
 
     {#if preset === 'full'}
       <div class="admin-editor-markdown-toolbar__group" role="group" aria-label="文章结构">
+      {#if tocToolEnabled}
+        <button
+          class="admin-btn admin-btn--tool admin-btn--compact admin-btn--icon admin-editor-markdown-toolbar__button"
+          type="button"
+          data-tooltip={tocTool.label}
+          aria-label={tocTool.label}
+          disabled={busy}
+          onclick={() => onInsertText('<article-toc></article-toc>', 'block')}
+        >
+          <AdminEditorIcon name={tocTool.icon} size={toolbarIconSize} strokeWidth={2} />
+        </button>
+      {/if}
       <button
         class="admin-btn admin-btn--tool admin-btn--compact admin-btn--icon admin-editor-markdown-toolbar__button admin-editor-markdown-toolbar__more-direct"
         type="button"

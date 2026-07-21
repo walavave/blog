@@ -24,6 +24,9 @@ import {
   ADMIN_NAV_ORNAMENT_MAX_LENGTH,
   ADMIN_OVERVIEW_HIDDEN_MESSAGE_DEFAULT,
   ADMIN_OVERVIEW_HIDDEN_MESSAGE_MAX_LENGTH,
+  ADMIN_SEARCH_SUBRESULT_LIMIT_DEFAULT,
+  ADMIN_SEARCH_SUBRESULT_LIMIT_MAX,
+  ADMIN_SEARCH_SUBRESULT_LIMIT_MIN,
   ADMIN_HERO_PRESET_SET,
   ADMIN_SOCIAL_ORDER_MAX,
   ADMIN_SOCIAL_ORDER_MIN,
@@ -154,6 +157,10 @@ export interface PageHeadingSettings {
   subtitle: string | null;
 }
 
+export interface EssayPageSettings extends PageHeadingSettings {
+  searchSubresultLimit: number;
+}
+
 export interface MemoPageSettings extends PageHeadingSettings {}
 
 export interface BitsDefaultAuthorSettings {
@@ -166,7 +173,7 @@ export interface BitsPageSettings extends PageHeadingSettings {
 }
 
 export interface PageSettings {
-  essay: PageHeadingSettings;
+  essay: EssayPageSettings;
   archive: PageHeadingSettings;
   bits: BitsPageSettings;
   memo: MemoPageSettings;
@@ -255,6 +262,7 @@ export interface ThemeSettingsSources {
   page: {
     essayTitle: SettingSource;
     essaySubtitle: SettingSource;
+    essaySearchSubresultLimit: SettingSource;
     archiveTitle: SettingSource;
     archiveSubtitle: SettingSource;
     bitsTitle: SettingSource;
@@ -483,7 +491,8 @@ const DEFAULT_HOME: HomeSettings = {
 const DEFAULT_PAGE: PageSettings = {
   essay: {
     title: LEGACY_ESSAY_TITLE,
-    subtitle: LEGACY_ESSAY_SUBTITLE
+    subtitle: LEGACY_ESSAY_SUBTITLE,
+    searchSubresultLimit: ADMIN_SEARCH_SUBRESULT_LIMIT_DEFAULT
   },
   archive: {
     title: LEGACY_ARCHIVE_TITLE,
@@ -1277,6 +1286,14 @@ export const getThemeSettings = (): ThemeSettingsResolved => {
     LEGACY_ESSAY_SUBTITLE,
     DEFAULT_PAGE.essay.subtitle
   );
+  const essaySearchSubresultLimit = resolveValue(
+    (() => {
+      const value = asInteger(pageEssayJson?.searchSubresultLimit);
+      return value !== undefined && value >= ADMIN_SEARCH_SUBRESULT_LIMIT_MIN && value <= ADMIN_SEARCH_SUBRESULT_LIMIT_MAX ? value : undefined;
+    })(),
+    undefined,
+    DEFAULT_PAGE.essay.searchSubresultLimit
+  );
   const archiveTitle = resolveValue(
     asNullableString(pageArchiveJson?.title),
     undefined,
@@ -1474,7 +1491,8 @@ export const getThemeSettings = (): ThemeSettingsResolved => {
       page: {
         essay: {
           title: essayTitle.value,
-          subtitle: essaySubtitle.value
+          subtitle: essaySubtitle.value,
+          searchSubresultLimit: essaySearchSubresultLimit.value
         },
         archive: {
           title: archiveTitle.value,
@@ -1563,6 +1581,7 @@ export const getThemeSettings = (): ThemeSettingsResolved => {
       page: {
         essayTitle: essayTitle.source,
         essaySubtitle: essaySubtitle.source,
+        essaySearchSubresultLimit: essaySearchSubresultLimit.source,
         archiveTitle: archiveTitle.source,
         archiveSubtitle: archiveSubtitle.source,
         bitsTitle: bitsTitle.source,

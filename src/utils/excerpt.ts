@@ -19,6 +19,10 @@ export function cleanMarkdownToText(md: string): string {
 
   text = text.replace(/```[\s\S]*?```/g, ' ');
   text = text.replace(/~~~[\s\S]*?~~~/g, ' ');
+  // Container directives are presentation syntax, not searchable content.
+  // Preserve an explicit visible label (`:::note[Title]` -> `Title`) while
+  // dropping directive names such as note/warning/tip and closing `:::`.
+  text = text.replace(/^\s*:{3,}\s*[\w-]*\s*(?:\[([^\]]*)\])?\s*$/gm, (_match, label: string | undefined) => label?.trim() || ' ');
   text = text.replace(/!\[[^\]]*]\([^)]+\)/g, ' ');
   text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
   text = text.replace(/`[^`]*`/g, ' ');

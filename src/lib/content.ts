@@ -10,6 +10,7 @@ import {
   flattenEntryIdToSlug
 } from '../utils/slug-rules';
 import { deriveMarkdownText, truncateText } from '../utils/excerpt';
+import GithubSlugger from 'github-slugger';
 export { createWithBase } from '../utils/format';
 
 type OrderBy<K extends CollectionKey> = (a: CollectionEntry<K>, b: CollectionEntry<K>) => number;
@@ -90,6 +91,7 @@ export type EssayDerivedText = {
   plainText: string;
   text: string;
   excerpt: string;
+  sections: Array<{ heading: string; slug: string; text: string }>;
 };
 export type MemoDerivedText = {
   plainText: string;
@@ -161,8 +163,6 @@ const assertUniqueEssaySlugs = (entries: readonly EssayEntry[]) => {
 const orderByEssayDate = (a: EssayEntry, b: EssayEntry) => b.data.date.valueOf() - a.data.date.valueOf();
 const shouldMemoizeEssayQueries = import.meta.env.PROD;
 const shouldMemoizeMemoQueries = import.meta.env.PROD;
-const MAX_ESSAY_INDEX_TEXT = 600;
-
 let sortedEssaysPromise: Promise<EssayEntry[]> | null = null;
 let visibleEssaysPromise: Promise<EssayEntry[]> | null = null;
 let archiveEssaysPromise: Promise<EssayEntry[]> | null = null;
@@ -185,11 +185,34 @@ const loadSortedEssays = async ({ includeDraft }: EssayQueryOptions = {}) => {
 
 const buildEssayDerivedText = (entry: EssayEntry): EssayDerivedText => {
   const { plainText, excerptText } = deriveMarkdownText(entry.body ?? '');
+  const body = entry.body ?? '';
+  const headingPattern = /^#{1,6}\s+(.+?)\s*#*\s*$/gm;
+  const headings = Array.from(body.matchAll(headingPattern));
+  const slugger = new GithubSlugger();
+  const headingSections = headings.map((match, index) => {
+    const heading = match[1]?.trim() ?? '';
+    const start = (match.index ?? 0) + match[0].length;
+    const end = headings[index + 1]?.index ?? body.length;
+    return {
+      heading,
+      slug: slugger.slug(heading),
+      text: deriveMarkdownText(`${heading}\n\n${body.slice(start, end)}`).plainText
+    };
+  });
+  const preambleEnd = headings[0]?.index ?? body.length;
+  const preambleText = deriveMarkdownText(body.slice(0, preambleEnd)).plainText;
+  const sections = [
+    ...(preambleText ? [{ heading: '', slug: '', text: preambleText }] : []),
+    ...headingSections
+  ];
 
   return {
     plainText,
-    text: plainText.length > MAX_ESSAY_INDEX_TEXT ? plainText.slice(0, MAX_ESSAY_INDEX_TEXT) : plainText,
-    excerpt: truncateText(excerptText, 120)
+    // Keep the complete plain text in the client index so list search can
+    // match concrete passages anywhere in an essay, not only its opening.
+    text: plainText,
+    excerpt: truncateText(excerptText, 120),
+    sections
   };
 };
 

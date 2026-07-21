@@ -66,32 +66,37 @@ const fallbackListId = 'essay-tag-list';
     />
   </div>
 
-  <div class="list">
-    {items.map((entry) => (
-      <EssayCard
-        href={withBase(`/archive/${getEssaySlug(entry)}/`)}
-        slug={getEssaySlug(entry)}
-        title={entry.data.title}
-        excerpt={getEssayDerivedText(entry).excerpt}
-        date={entry.data.date}
-        updatedAt={entry.data.updatedAt}
-        visibleTags={getVisibleArticleMetaTags(entry.data.tags, 'list')}
-        articleMetaSettings={articleMeta}
-        badge={entry.data.badge}
-      />
-    ))}
+  <div data-entry-browse>
+    <div class="list">
+      {items.map((entry) => (
+        <EssayCard
+          href={withBase(`/archive/${getEssaySlug(entry)}/`)}
+          slug={getEssaySlug(entry)}
+          title={entry.data.title}
+          excerpt={getEssayDerivedText(entry).excerpt}
+          date={entry.data.date}
+          updatedAt={entry.data.updatedAt}
+          visibleTags={getVisibleArticleMetaTags(entry.data.tags, 'list')}
+          articleMetaSettings={articleMeta}
+          badge={entry.data.badge}
+        />
+      ))}
+    </div>
+
+    {totalPages > 1 ? (
+      <nav class="pagination" aria-label={`${pageTitleText}分页`}>
+        <div class="pagination__inner">
+          {prevPath ? <a class="pagination__link" rel="prev" href={withBase(prevPath)}>上一页</a> : null}
+          {nextPath ? <a class="pagination__link pagination__link--next" rel="next" href={withBase(nextPath)}>下一页</a> : null}
+        </div>
+      </nav>
+    ) : null}
   </div>
 
-  {totalPages > 1 ? (
-    <nav class="pagination" aria-label={`${pageTitleText}分页`}>
-      <div class="pagination__inner">
-        {prevPath ? <a class="pagination__link" rel="prev" href={withBase(prevPath)}>上一页</a> : null}
-        {nextPath ? (
-          <a class="pagination__link pagination__link--next" rel="next" href={withBase(nextPath)}>下一页</a>
-        ) : null}
-      </div>
-    </nav>
-  ) : null}
+  <section class="essay-search-results" data-entry-search-results hidden aria-label="搜索结果">
+    <p class="essay-search-results__summary" data-entry-search-results-summary role="status" aria-live="polite"></p>
+    <div class="essay-search-results__list" data-entry-search-results-list></div>
+  </section>
 
   <script>
     import '../scripts/entry-search.ts';

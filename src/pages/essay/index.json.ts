@@ -6,13 +6,14 @@ export const prerender = true;
 export const GET: APIRoute = async () => {
   const visibleEssays = await getVisibleEssays();
   const index = visibleEssays.map((entry) => {
-    const { text } = getEssayDerivedText(entry);
+    const { text, sections } = getEssayDerivedText(entry);
     return {
       slug: getEssaySlug(entry),
       title: entry.data.title ?? '',
       description: entry.data.description ?? '',
       tags: entry.data.tags ?? [],
       text,
+      sections,
       date: entry.data.date ? entry.data.date.toISOString() : null
     };
   });

@@ -6,6 +6,7 @@ import {
   createWithBase,
   tokenizeSearchQuery
 } from '../utils/format';
+import { getSearchSnippets } from '../utils/search-snippets';
 
 type IndexItem = {
   slug: string;
@@ -13,6 +14,7 @@ type IndexItem = {
   description: string;
   tags: string[];
   text: string;
+  sections?: Array<{ heading: string; slug: string; text: string }>;
   date: string | null;
 };
 
@@ -44,6 +46,10 @@ if (!root) {
   const tagScopeRaw = (root.dataset.tagScope ?? '').trim();
   const activeTagKey = (root.dataset.activeTagKey ?? '').trim();
   const activeTagLabel = (root.dataset.activeTagLabel ?? '').trim();
+  const browseRoot = document.querySelector<HTMLElement>('[data-entry-browse]');
+  const resultsRoot = document.querySelector<HTMLElement>('[data-entry-search-results]');
+  const resultsSummary = document.querySelector<HTMLElement>('[data-entry-search-results-summary]');
+  const resultsList = document.querySelector<HTMLElement>('[data-entry-search-results-list]');
 
   const base = import.meta.env.BASE_URL ?? '/';
   const withBase = createWithBase(base);
@@ -97,6 +103,40 @@ if (!root) {
     item.el.hidden = !visible;
   };
 
+  const escapeHtml = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const highlightText = (value: string, terms: string[]) => {
+    const validTerms = terms.filter(Boolean).sort((a, b) => b.length - a.length);
+    if (!validTerms.length) return escapeHtml(value);
+    const regex = new RegExp(`(${validTerms.map(escapeRegExp).join('|')})`, 'gi');
+    return value.split(regex).map((part) => validTerms.some((term) => part.toLowerCase() === term.toLowerCase())
+      ? `<mark class="essay-search-result__mark">${escapeHtml(part)}</mark>` : escapeHtml(part)).join('');
+  };
+  const showBrowse = () => {
+    browseRoot?.removeAttribute('hidden');
+    resultsRoot?.setAttribute('hidden', 'true');
+    if (resultsList) resultsList.innerHTML = '';
+  };
+  const renderSearchResults = (matchedItems: IndexItem[], terms: string[]) => {
+    if (!browseRoot || !resultsRoot || !resultsList) return false;
+    const renderedResults = matchedItems.flatMap((item) => {
+      const sections = item.sections?.length ? item.sections : [{ heading: '', slug: '', text: item.text }];
+      const sectionResults = sections.flatMap((section) => getSearchSnippets(section.text, terms, 32).map((snippet) => {
+        const heading = section.heading ? `${item.title} · ${section.heading}` : item.title;
+        const hash = section.slug ? `#${encodeURIComponent(section.slug)}` : '';
+        return `<article class="essay-search-result"><a class="essay-search-result__link" href="${escapeHtml(withBase(`/archive/${encodeURIComponent(item.slug)}/${hash}`))}"><p class="essay-search-result__title">${highlightText(heading, terms)}</p><p class="essay-search-result__excerpt">${highlightText(snippet, terms)}</p></a></article>`;
+      }));
+      if (sectionResults.length) return sectionResults;
+      const fallback = getSearchSnippets(`${item.title} ${item.description}`, terms, 32)[0];
+      return fallback ? [`<article class="essay-search-result"><a class="essay-search-result__link" href="${escapeHtml(withBase(`/archive/${encodeURIComponent(item.slug)}/`))}"><p class="essay-search-result__title">${highlightText(item.title, terms)}</p><p class="essay-search-result__excerpt">${highlightText(fallback, terms)}</p></a></article>`] : [];
+    });
+    if (resultsSummary) resultsSummary.textContent = renderedResults.length ? `找到 ${matchedItems.length} 篇随笔，共 ${renderedResults.length} 处匹配` : '未找到匹配内容';
+    resultsList.innerHTML = renderedResults.length ? renderedResults.join('') : '<p class="essay-search-results__empty">未找到相关内容，换个关键词试试。</p>';
+    browseRoot.setAttribute('hidden', 'true');
+    resultsRoot.removeAttribute('hidden');
+    return true;
+  };
+
   const syncLegacyTagParam = () => {
     const url = new URL(window.location.href);
     const rawTag = (url.searchParams.get('tag') ?? '').trim();
@@ -134,6 +174,7 @@ if (!root) {
   };
 
   const showAllItems = () => {
+    showBrowse();
     for (const item of items) {
       setItemVisible(item, true);
     }
@@ -310,6 +351,7 @@ if (!root) {
     if (!index || !indexHay || !indexTagKeys) return;
 
     const matchedSlugs = new Set<string>();
+    const matchedItems: IndexItem[] = [];
     for (const item of index) {
       const hay = indexHay.get(item.slug) || '';
       if (!queryTerms.every((term) => hay.includes(term))) continue;
@@ -320,6 +362,12 @@ if (!root) {
       }
 
       matchedSlugs.add(item.slug);
+      matchedItems.push(item);
+    }
+
+    if (renderSearchResults(matchedItems, queryTerms)) {
+      updateStatusForMatches(rawQuery, matchedItems.length, matchedItems.length);
+      return;
     }
 
     let visibleMatches = 0;

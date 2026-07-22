@@ -3,6 +3,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import { visit } from 'unist-util-visit';
 import {
   markdownMathRawOptions,
   rehypeProtectMarkdownMath,
@@ -23,6 +24,20 @@ export const markdownShikiThemes = Object.freeze({
   light: 'github-light',
   dark: 'github-dark'
 });
+
+const markdownCodeLanguageAliases = Object.freeze({
+  cmd: 'bat',
+  batch: 'bat',
+  'c++': 'cpp'
+});
+
+export const remarkNormalizeCodeLanguages = () => (tree) => {
+  visit(tree, 'code', (node) => {
+    if (typeof node.lang !== 'string') return;
+    const language = node.lang.trim().toLowerCase();
+    node.lang = markdownCodeLanguageAliases[language] ?? language;
+  });
+};
 
 export const markdownFeatureContract = Object.freeze([
   {
@@ -261,7 +276,8 @@ export const createProjectMarkdownRemarkPlugins = ({ aboutEnabled } = {}) => [
   [remarkMath, markdownMathOptions],
   remarkDirective,
   withOptions(remarkAboutDirectives, aboutEnabled === undefined ? undefined : { enabled: aboutEnabled }),
-  remarkCallout
+  remarkCallout,
+  remarkNormalizeCodeLanguages
 ];
 
 /** @param {ProjectMarkdownRehypeOptions} [options] */

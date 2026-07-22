@@ -60,6 +60,43 @@ describe('admin preview api', () => {
     expect(result.html).toContain('<code class="language-ts">');
   });
 
+  it('highlights cmd fences as Windows batch and preserves language label casing', async () => {
+    const { renderAdminMarkdownPreview } = await import('../src/lib/admin-console/preview');
+
+    const result = await renderAdminMarkdownPreview({
+      collection: 'essay',
+      source: [
+        '```cmd',
+        'echo Hello',
+        '```',
+        '',
+        '```python',
+        'print("Hello")',
+        '```'
+      ].join('\n')
+    });
+
+    expect(result.html).toContain('class="language-bat"');
+    expect(result.html).toContain('<span>Windows CMD</span>');
+    expect(result.html).toContain('class="language-python"');
+    expect(result.html).toContain('<span>Python</span>');
+  });
+
+  it('supports both c++ and cpp fence names with the C++ toolbar identity', async () => {
+    const { renderAdminMarkdownPreview } = await import('../src/lib/admin-console/preview');
+
+    for (const language of ['c++', 'cpp']) {
+      const result = await renderAdminMarkdownPreview({
+        collection: 'essay',
+        source: [`\`\`\`${language}`, 'int main() { return 0; }', '```'].join('\n')
+      });
+
+      expect(result.html).toContain('class="language-cpp"');
+      expect(result.html).toContain('<span>C++</span>');
+      expect(result.html).toContain('code-lang-icon');
+    }
+  });
+
   it('keeps math fenced code as code instead of KaTeX', async () => {
     const { renderAdminMarkdownPreview } = await import('../src/lib/admin-console/preview');
 

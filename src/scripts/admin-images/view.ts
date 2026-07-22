@@ -9,6 +9,9 @@ const escapeHtml = (value: string): string =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 
+export const getResourceCopyPath = (assetPath: string): string =>
+  assetPath.replace(/^\/?src\/content\/essay(?=\/|$)/, '.');
+
 const getOriginBadgeLabel = (origin: AdminImageBrowseItem['origin']): string => {
   if (origin === 'public') return '公开资源';
   if (origin === 'src/assets') return '站点素材';
@@ -411,6 +414,7 @@ export const renderDetail = ({
   const fieldCopyLabel = hasPreferredValue ? '可用值' : '文件路径';
   const markdownRef = getMarkdownReference(item);
   const previewSrc = detailMeta?.previewSrc ?? item.previewSrc;
+  const resourceCopyPath = getResourceCopyPath(item.path);
 
   detailEl.hidden = false;
   detailEl.innerHTML = `
@@ -472,13 +476,14 @@ export const renderDetail = ({
 
         <div class="admin-images-browser__detail-actions">
           <button
-            class="admin-btn admin-btn--primary"
+            class="admin-btn admin-btn--primary admin-images-resource-copy-btn"
             type="button"
-            data-copy-value="${escapeHtml(item.path)}"
+            data-copy-value="${escapeHtml(resourceCopyPath)}"
             data-copy-label="资源路径"
+            data-inline-feedback="true"
           >
             ${linkIcon}
-            复制资源路径
+            <span data-copy-feedback-label>复制资源路径</span>
           </button>
           ${previewSrc
         ? `<a class="admin-btn admin-btn--ghost" href="${escapeHtml(previewSrc)}" target="_blank" rel="noreferrer">

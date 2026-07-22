@@ -119,8 +119,8 @@ body[data-code-line-numbers="off"] .prose pre:is(.astro-code, .shiki) .line {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  text-transform: none;
+  letter-spacing: 0;
   color: var(--code-text);
 }
 

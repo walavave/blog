@@ -714,6 +714,11 @@ export const initAdminImagesConsole = () => {
     button.dataset.state = 'copied';
     button.setAttribute('aria-label', `已复制${copyLabel}`);
     button.setAttribute('title', `已复制${copyLabel}`);
+    const feedbackLabel = button.querySelector<HTMLElement>('[data-copy-feedback-label]');
+    if (feedbackLabel) {
+      button.dataset.originalFeedbackLabel ??= feedbackLabel.textContent ?? '';
+      feedbackLabel.textContent = '已复制';
+    }
 
     const timer = window.setTimeout(() => {
       if (!button.isConnected) return;
@@ -721,6 +726,10 @@ export const initAdminImagesConsole = () => {
       delete button.dataset.feedbackTimer;
       button.setAttribute('aria-label', `复制${copyLabel}`);
       button.setAttribute('title', '点击复制');
+      if (feedbackLabel) {
+        feedbackLabel.textContent = button.dataset.originalFeedbackLabel ?? '复制';
+        delete button.dataset.originalFeedbackLabel;
+      }
     }, 1100);
 
     button.dataset.feedbackTimer = String(timer);

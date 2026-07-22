@@ -13,6 +13,9 @@ const LANG_ALIASES = {
   sh: 'bash',
   shell: 'bash',
   zsh: 'bash',
+  cmd: 'bat',
+  batch: 'bat',
+  'c++': 'cpp',
   docker: 'dockerfile',
   conf: 'nginx',
   yml: 'yaml',
@@ -27,6 +30,7 @@ const LANG_LABELS = {
   tsx: 'TSX',
   html: 'HTML',
   css: 'CSS',
+  cpp: 'C++',
   scss: 'SCSS',
   vue: 'Vue',
   svelte: 'Svelte',
@@ -43,6 +47,7 @@ const LANG_LABELS = {
   yaml: 'YAML',
   toml: 'TOML',
   bash: 'Bash',
+  bat: 'Windows CMD',
   powershell: 'PowerShell',
   dockerfile: 'Dockerfile',
   makefile: 'Makefile',
@@ -53,6 +58,7 @@ const LANG_LABELS = {
 };
 
 const SIMPLE_ICON_KEYS = {
+  cpp: ['cplusplus'],
   javascript: ['javascript'],
   typescript: ['typescript'],
   jsx: ['react'],
@@ -83,6 +89,7 @@ const SIMPLE_ICON_KEYS = {
 };
 
 const LOGO_ICON_KEYS = {
+  cpp: ['c-plusplus', 'cplusplus'],
   javascript: ['javascript-icon', 'javascript'],
   typescript: ['typescript-icon', 'typescript'],
   jsx: ['react', 'reactjs'],

@@ -243,6 +243,12 @@
   margin-top: 4px;
 }
 
+.admin-images-resource-copy-btn[data-state='copied'] {
+  border-color: var(--admin-status-success-border);
+  background: var(--admin-status-success-bg);
+  color: var(--admin-status-success-text);
+}
+
 .admin-images-browser__detail-fallback {
   color: var(--muted);
   font-size: var(--admin-text-sm);
